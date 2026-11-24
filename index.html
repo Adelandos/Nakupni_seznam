@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <!-- Nastavení pro mobilní displeje včetně podpory výřezu a spodní lišty iPhonu -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- Meta tagy pro režim mobilní aplikace (PWA – Přidat na plochu) -->
+  <meta name="theme-color" content="#68826e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Chytrý nákup">
+
+  <!-- Vlastní inline SVG ikonka (košík s lístkem v šalvějové zelené) pro prohlížeč i plochu mobilu -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='30' fill='%2368826e'/%3E%3Cpath d='M34 54h60l-7 40a8 8 0 0 1-8 7H49a8 8 0 0 1-8-7l-7-40z' fill='none' stroke='%23f6f8f6' stroke-width='7' stroke-linejoin='round'/%3E%3Cpath d='M48 54V43a16 16 0 0 1 32 0v11' fill='none' stroke='%23f6f8f6' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M64 86c0-11 7-19 18-20-1 11-8 19-18 20zm0 0c-8-2-13-8-14-16 8 1 13 7 14 16z' fill='%23eaf0eb'/%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%2368826e'/%3E%3Cpath d='M34 54h60l-7 40a8 8 0 0 1-8 7H49a8 8 0 0 1-8-7l-7-40z' fill='none' stroke='%23f6f8f6' stroke-width='7' stroke-linejoin='round'/%3E%3Cpath d='M48 54V43a16 16 0 0 1 32 0v11' fill='none' stroke='%23f6f8f6' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M64 86c0-11 7-19 18-20-1 11-8 19-18 20zm0 0c-8-2-13-8-14-16 8 1 13 7 14 16z' fill='%23eaf0eb'/%3E%3C/svg%3E">
+
+  <title>Chytrý nákup a plánovač</title>
+
+  <!-- Písmo Inter pro čistou a klidnou čitelnost na mobilu -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS pro stylování celé aplikace -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    /* ==========================================================================
+       BAREVNÁ PALETA APLIKACE – NENÁSILNÁ ŠALVĚJOVÁ ZELENÁ
+       Pokud budeš chtít kdykoli v budoucnu ladit barvy, všechny hlavní odstíny
+       najdeš přehledně na jednom místě právě zde.
+       ========================================================================== */
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
+          },
+          colors: {
+            sage: {
+              bg:       '#f6f8f6', /* Čisté světlé šalvějovo-krémové pozadí */
+              pastel:   '#eaf0eb', /* Jemný pastelový odstín (štítky, aktivní záložka) */
+              border:   '#e2e9e3', /* Jemný okraj karet a vstupů */
+              soft:     '#cfdcd1', /* Výraznější jemný okraj */
+              DEFAULT:  '#68826e', /* Hlavní nenásilná šalvějová zelená */
+              dark:     '#516957', /* Tmavší akcent při najetí / stisku */
+              ink:      '#253028', /* Hlavní měkký tmavý text */
+              muted:    '#637267'  /* Sekundární jemný text */
+            },
+            ochre: {
+              bg:       '#fbf4e6', /* Jemná teplá okrová pro částečnou shodu */
+              border:   '#efe0be', /* Okraj okrových štítků */
+              DEFAULT:  '#d99b43', /* Teplá okrová akcentová barva */
+              text:     '#8f601d'  /* Čitelný tmavší okrový text na světlém pozadí */
+            },
+            danger: {
+              bg:       '#fdf2f2', /* Jemný podklad pro tlačítka mazání */
+              border:   '#f2d6d6',
+              DEFAULT:  '#b85454', /* Tlumená červená jen pro mazání */
+              dark:     '#963e3e'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Jemné mobilní doladění pro dotykové ovládání a bezpečné okraje displeje */
+    html, body {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .safe-bottom {
+      padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    }
+
+    .content-bottom-space {
+      padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+    }
+
+    /* Plynulé přepínání záložek */
+    .tab-fade {
+      animation: tabFadeIn 0.2s ease-out;
+    }
+
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Skrytí posuvníku u řady filtračních pilulek */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-[#ebefec] text-sage-ink font-sans antialiased min-h-screen sm:py-5 sm:px-3 flex justify-center items-start">
+
+  <!-- ==========================================================================
+       HLAVNÍ KONTEJNER APLIKACE (Mobil na celou šířku, desktop vycentrovaných 520px)
+       ========================================================================== -->
+  <div class="w-full max-w-[520px] min-h-screen sm:min-h-[calc(100vh-2.5rem)] bg-sage-bg sm:rounded-[2rem] sm:shadow-xl sm:border sm:border-white/90 relative flex flex-col overflow-x-clip">
+
+    <!-- Pevná horní lišta s názvem aktivní sekce -->
+    <header class="sticky top-0 z-20 bg-sage-bg/95 backdrop-blur-md border-b border-sage-border px-5 pt-4 pb-3 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <h1 id="headerTitle" class="text-xl font-bold tracking-tight text-sage-ink truncate">Nákupní seznam</h1>
+        <p id="headerSubtitle" class="text-xs text-sage-muted mt-0.5 truncate">Přehled položek ke koupi a v košíku</p>
+      </div>
+      <!-- Tlačítko pro případný návrat k ukázkovým datům -->
+      <button
+        type="button"
+        id="resetDemoBtn"
+        title="Obnovit ukázková data"
+        aria-label="Obnovit ukázková data"
+        class="w-10 h-10 rounded-xl bg-white border border-sage-border text-sage hover:bg-sage-pastel active:scale-95 transition flex items-center justify-center shrink-0 shadow-sm"
+      >
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Hlavní oblast obsahu přepínatelných záložek -->
+    <main class="flex-1 px-4 pt-4 content-bottom-space">
+
+      <!-- ======================================================================
+           ZÁLOŽKA 1: NÁKUP (Bez uliček – čistě Ke koupi / V košíku)
+           ====================================================================== -->
+      <section id="tab-shopping" class="tab-panel tab-fade">
+
+        <!-- Ukazatel pokroku nákupu -->
+        <div id="shoppingProgressBox" class="hidden bg-white rounded-2xl p-4 mb-3.5 shadow-sm border border-sage-border">
+          <div class="flex items-center justify-between text-sm font-semibold text-sage-ink mb-2">
+            <span id="progressText">V košíku 0 z 0</span>
+            <span id="progressPercent" class="text-sage-dark bg-sage-pastel px-2.5 py-0.5 rounded-full text-xs font-bold">0 %</span>
+          </div>
+          <div class="w-full h-2.5 bg-sage-pastel rounded-full overflow-hidden">
+            <div id="progressFill" class="h-full bg-sage rounded-full transition-all duration-300" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Rychlý formulář pro přidání položky na nákup -->
+        <form id="quickAddForm" class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-sage-border">
+          <div class="text-sm font-semibold text-sage-ink mb-2.5">Přidat na nákup</div>
+          <div class="space-y-2.5">
+            <input
+              type="text"
+              id="quickName"
+              placeholder="Co potřebuješ koupit? (např. Máslo, chléb...)"
+              required
+              autocomplete="off"
+              class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
+            >
+            <div class="flex gap-2">
+              <input
+                type="number"
+                id="quickAmount"
+                value="1"
+                min="0.1"
+                step="any"
+                aria-label="Množství"
+                class="w-20 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+              >
+              <select
+                id="quickUnit"
+                aria-label="Jednotka"
+                class="w-24 h-11 px-2.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+              ></select>
+              <button
+                type="submit"
+                class="flex-1 h-11 px-4 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition flex items-center justify-center"
+              >
+                + Přidat
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Panel akcí pro položky, které už jsou v košíku -->
+        <div id="basketActionsBar" class="hidden bg-sage-pastel border border-sage-soft rounded-2xl p-3.5 mb-4">
+          <div class="text-xs font-medium text-sage-dark mb-2.5" id="basketSummaryText">
+            Položky v košíku můžeš po nákupu rovnou přesunout do zásob doma.
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              id="moveBoughtHomeBtn"
+              class="flex-1 min-h-[42px] px-3 py-2 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-xs sm:text-sm font-semibold transition shadow-sm"
+            >
+              Přesunout koupené domů
+            </button>
+            <button
+              type="button"
+              id="clearBoughtBtn"
+              class="min-h-[42px] px-3.5 py-2 rounded-xl bg-white hover:bg-danger-bg active:scale-[0.98] text-danger border border-danger-border text-xs sm:text-sm font-medium transition"
+            >
+              Smazat koupené
+            </button>
+          </div>
+        </div>
+
+        <!-- Zde JS vykreslí sekce „Ke koupi“ a „V košíku“ -->
+        <div id="shoppingListContainer"></div>
+      </section>
+
+      <!-- ======================================================================
+           ZÁLOŽKA 2: PLÁN (Týdenní plánovač jídla Po–Ne)
+           ====================================================================== -->
+      <section id="tab-planner" class="tab-panel hidden tab-fade">
+
+        <!-- Chytrá horní karta s přepínačem odečítání zásob a hlavním tlačítkem -->
+        <div class="bg-sage text-white rounded-2xl p-4 mb-4 shadow-sm">
+          <div class="text-sm font-semibold mb-1">Chytrý přenos do nákupu</div>
+          <p class="text-xs text-white/85 mb-3 leading-relaxed">
+            Sečte stejné suroviny ze všech naplánovaných dnů v týdnu a doplní ti jen to, co skutečně chybí.
+          </p>
+
+          <!-- Výrazný přepínač: Odečíst suroviny, které už mám doma (ZAPNUTO ve výchozím stavu) -->
+          <label class="flex items-center justify-between gap-3 bg-white/15 rounded-xl px-3.5 py-2.5 mb-3 cursor-pointer select-none">
+            <span class="text-xs sm:text-sm font-medium">Odečíst suroviny, které už mám doma</span>
+            <span class="relative inline-flex items-center shrink-0">
+              <input type="checkbox" id="subtractPantryToggle" checked class="sr-only peer">
+              <span class="w-11 h-6 bg-white/30 rounded-full peer peer-checked:bg-white transition-colors"></span>
+              <span class="absolute left-0.5 top-0.5 w-5 h-5 bg-sage rounded-full shadow-sm transition-transform peer-checked:translate-x-5"></span>
+            </span>
+          </label>
+
+          <button
+            type="button"
+            id="generateShoppingBtn"
+            class="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-white text-sage-dark hover:bg-sage-bg active:scale-[0.98] text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span>Přidat suroviny z plánu do nákupu</span>
+          </button>
+        </div>
+
+        <!-- Seznam 7 dnů (Pondělí až Neděle) -->
+        <div id="plannerDaysContainer" class="space-y-3"></div>
+
+        <!-- Tlačítko pro vymazání celého týdenního plánu -->
+        <button
+          type="button"
+          id="clearPlanBtn"
+          class="w-full mt-4 min-h-[42px] px-4 py-2.5 rounded-xl bg-white hover:bg-danger-bg text-danger border border-danger-border text-sm font-medium transition"
+        >
+          Vymazat celý týdenní plán
+        </button>
+      </section>
+
+      <!-- ======================================================================
+           ZÁLOŽKA 3: RECEPTY (S živým porovnáním vůči záložce Doma)
+           ====================================================================== -->
+      <section id="tab-recipes" class="tab-panel hidden tab-fade">
+
+        <!-- Lišta s přepínačem filtru a tlačítkem pro přidání nového receptu -->
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="bg-sage-pastel p-1 rounded-xl inline-flex flex-1 border border-sage-border">
+            <button
+              type="button"
+              data-recipe-filter="all"
+              class="recipe-filter-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition bg-white text-sage-ink shadow-sm"
+            >
+              Všechny
+            </button>
+            <button
+              type="button"
+              data-recipe-filter="cookable"
+              class="recipe-filter-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition text-sage-muted"
+            >
+              Co můžu uvařit
+            </button>
+          </div>
+
+          <button
+            type="button"
+            id="openNewRecipeModalBtn"
+            class="h-10 px-3.5 rounded-xl bg-sage hover:bg-sage-dark active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-sm transition shrink-0"
+          >
+            + Nový recept
+          </button>
+        </div>
+
+        <!-- Karty receptů -->
+        <div id="recipesListContainer" class="space-y-3"></div>
+      </section>
+
+      <!-- ======================================================================
+           ZÁLOŽKA 4: DOMA („Co mám doma“ – Lednice, Spíž, Mrazák)
+           ====================================================================== -->
+      <section id="tab-pantry" class="tab-panel hidden tab-fade">
+
+        <!-- Rychlý formulář pro přidání nové suroviny domů -->
+        <form id="addPantryForm" class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-sage-border">
+          <div class="text-sm font-semibold text-sage-ink mb-2.5">Přidat surovinu domů</div>
+          <div class="space-y-2.5">
+            <div class="flex gap-2">
+              <input
+                type="text"
+                id="pantryName"
+                placeholder="Název suroviny (např. Mrkev, mléko...)"
+                required
+                autocomplete="off"
+                class="flex-1 h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
+              >
+              <select
+                id="pantryLocation"
+                aria-label="Umístění"
+                class="w-28 h-11 px-2.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+              >
+                <option value="Lednice">Lednice</option>
+                <option value="Spíž" selected>Spíž</option>
+                <option value="Mrazák">Mrazák</option>
+              </select>
+            </div>
+            <div class="flex gap-2">
+              <input
+                type="number"
+                id="pantryAmount"
+                value="1"
+                min="0.1"
+                step="any"
+                aria-label="Množství"
+                class="w-20 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+              >
+              <select
+                id="pantryUnit"
+                aria-label="Jednotka"
+                class="w-24 h-11 px-2.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+              ></select>
+              <button
+                type="submit"
+                class="flex-1 h-11 px-4 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition"
+              >
+                + Uložit
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Vyhledávání a filtrovací pilulky podle umístění -->
+        <div class="mb-3.5 space-y-2.5">
+          <div class="relative">
+            <svg class="w-4 h-4 text-sage-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="search"
+              id="pantrySearchInput"
+              placeholder="Hledat v zásobách doma..."
+              class="w-full h-10 pl-10 pr-3.5 rounded-xl bg-white border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:border-sage transition shadow-sm"
+            >
+          </div>
+
+          <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5" id="pantryFilterPills">
+            <button type="button" data-loc="Vše" class="pantry-pill px-3.5 py-1.5 rounded-full text-xs font-semibold transition shrink-0 bg-sage text-white shadow-sm">Vše</button>
+            <button type="button" data-loc="Lednice" class="pantry-pill px-3.5 py-1.5 rounded-full text-xs font-medium transition shrink-0 bg-white text-sage-ink border border-sage-border">Lednice</button>
+            <button type="button" data-loc="Spíž" class="pantry-pill px-3.5 py-1.5 rounded-full text-xs font-medium transition shrink-0 bg-white text-sage-ink border border-sage-border">Spíž</button>
+            <button type="button" data-loc="Mrazák" class="pantry-pill px-3.5 py-1.5 rounded-full text-xs font-medium transition shrink-0 bg-white text-sage-ink border border-sage-border">Mrazák</button>
+          </div>
+        </div>
+
+        <!-- Seznam surovin doma -->
+        <div id="pantryListContainer" class="space-y-2.5"></div>
+      </section>
+
+    </main>
+
+    <!-- ========================================================================
+         SPODNÍ FIXNÍ NAVIGAČNÍ LIŠTA (4 záložky: Nákup, Plán, Recepty, Doma)
+         ======================================================================== -->
+    <nav class="fixed bottom-0 sm:bottom-5 left-1/2 -translate-x-1/2 w-full max-w-[520px] bg-white/95 backdrop-blur-md border-t border-sage-border sm:rounded-b-[2rem] px-2 pt-1.5 safe-bottom grid grid-cols-4 gap-1 z-30 shadow-[0_-4px_18px_rgba(37,48,40,0.05)]" aria-label="Hlavní navigace">
+      <button type="button" class="nav-btn relative flex flex-col items-center justify-center py-1.5 rounded-2xl text-sage-dark bg-sage-pastel font-semibold transition" data-tab="shopping">
+        <!-- Odznak s počtem zbývajících položek ke koupi -->
+        <span id="shoppingBadge" class="hidden absolute top-1 right-[calc(50%-22px)] min-w-[18px] h-[18px] px-1 rounded-full bg-ochre text-white text-[10px] font-bold flex items-center justify-center shadow-sm">0</span>
+        <svg class="w-5 h-5 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span class="text-[11px]">Nákup</span>
+      </button>
+
+      <button type="button" class="nav-btn relative flex flex-col items-center justify-center py-1.5 rounded-2xl text-sage-muted hover:bg-sage-bg font-medium transition" data-tab="planner">
+        <svg class="w-5 h-5 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span class="text-[11px]">Plán</span>
+      </button>
+
+      <button type="button" class="nav-btn relative flex flex-col items-center justify-center py-1.5 rounded-2xl text-sage-muted hover:bg-sage-bg font-medium transition" data-tab="recipes">
+        <svg class="w-5 h-5 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span class="text-[11px]">Recepty</span>
+      </button>
+
+      <button type="button" class="nav-btn relative flex flex-col items-center justify-center py-1.5 rounded-2xl text-sage-muted hover:bg-sage-bg font-medium transition" data-tab="pantry">
+        <svg class="w-5 h-5 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span class="text-[11px]">Doma</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ==========================================================================
+       MODÁLNÍ OKNO 1: VÝBĚR RECEPTU DO DNE V TÝDENNÍM PLÁNU
+       ========================================================================== -->
+  <div id="mealPickerModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center p-3">
+    <div class="w-full max-w-[460px] bg-white rounded-3xl p-5 shadow-2xl max-h-[85vh] flex flex-col border border-sage-border">
+      <div class="flex items-center justify-between mb-1">
+        <h2 id="mealPickerTitle" class="text-lg font-bold text-sage-ink">Přidat jídlo</h2>
+        <button type="button" data-close-modal="mealPickerModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-pastel transition">✕</button>
+      </div>
+      <p class="text-xs text-sage-muted mb-3.5">Vyber recept – nahoře vidíš ta jídla, na která máš doma nejvíc surovin.</p>
+
+      <div id="mealPickerList" class="space-y-2 overflow-y-auto pr-0.5 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODÁLNÍ OKNO 2: PŘIDÁNÍ NEBO ÚPRAVA RECEPTU
+       ========================================================================== -->
+  <div id="recipeFormModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center p-3">
+    <form id="recipeForm" class="w-full max-w-[460px] bg-white rounded-3xl p-5 shadow-2xl max-h-[90vh] flex flex-col border border-sage-border">
+      <div class="flex items-center justify-between mb-3">
+        <h2 id="recipeModalTitle" class="text-lg font-bold text-sage-ink">Nový recept</h2>
+        <button type="button" data-close-modal="recipeFormModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-pastel transition">✕</button>
+      </div>
+
+      <div class="overflow-y-auto pr-0.5 space-y-3 flex-1">
+        <div>
+          <label for="recipeNameInput" class="block text-xs font-semibold text-sage-ink mb-1">Název receptu</label>
+          <input
+            type="text"
+            id="recipeNameInput"
+            placeholder="Např. Bramborové noky se špenátem"
+            required
+            class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+          >
+        </div>
+
+        <div>
+          <label for="recipeNoteInput" class="block text-xs font-semibold text-sage-ink mb-1">Poznámka / krátký postup (volitelné)</label>
+          <textarea
+            id="recipeNoteInput"
+            rows="2"
+            placeholder="Např. Cibuli a česnek zpěnit na másle, přidat rajčata a povařit 15 minut..."
+            class="w-full px-3.5 py-2.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition resize-none"
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-sage-ink mb-1.5">Suroviny</label>
+          <div id="draftIngredientsContainer" class="space-y-2"></div>
+          <button
+            type="button"
+            id="addDraftIngBtn"
+            class="w-full mt-2 py-2.5 px-3 rounded-xl bg-sage-pastel hover:bg-sage-soft/70 text-sage-dark text-xs font-semibold transition"
+          >
+            + Přidat další surovinu
+          </button>
+        </div>
+      </div>
+
+      <div class="flex gap-2.5 mt-4 pt-3 border-t border-sage-border">
+        <button type="button" data-close-modal="recipeFormModal" class="flex-1 h-11 rounded-xl border border-sage-border text-sage-muted text-sm font-semibold hover:bg-sage-bg transition">
+          Zrušit
+        </button>
+        <button type="submit" id="recipeSubmitBtn" class="flex-1 h-11 rounded-xl bg-sage hover:bg-sage-dark text-white text-sm font-semibold shadow-sm transition">
+          Uložit recept
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ==========================================================================
+       MODÁLNÍ OKNO 3: VLASTNÍ POTVRZOVACÍ DIALOG (náhrada za confirm())
+       ========================================================================== -->
+  <div id="confirmModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center p-3">
+    <div class="w-full max-w-[400px] bg-white rounded-3xl p-5 shadow-2xl border border-sage-border">
+      <h2 id="confirmTitle" class="text-lg font-bold text-sage-ink mb-1">Potvrzení</h2>
+      <p id="confirmMessage" class="text-sm text-sage-muted mb-5 leading-relaxed">Opravdu chceš pokračovat?</p>
+      <div class="flex gap-2.5">
+        <button type="button" id="confirmCancelBtn" class="flex-1 h-11 rounded-xl border border-sage-border text-sage-muted text-sm font-semibold hover:bg-sage-bg transition">
+          Zrušit
+        </button>
+        <button type="button" id="confirmOkBtn" class="flex-1 h-11 rounded-xl bg-danger hover:bg-danger-dark text-white text-sm font-semibold shadow-sm transition">
+          Ano, potvrdit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jemná toast notifikace nad spodní navigací -->
+  <div
+    id="toast"
+    role="status"
+    aria-live="polite"
+    class="fixed bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 translate-y-4 opacity-0 pointer-events-none transition-all duration-200 z-[60] max-w-[90%] sm:max-w-[440px] bg-sage-ink text-sage-bg text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-lg text-center"
+  ></div>
+
+  <script>
+    /* ==========================================================================
+       1. KONSTANTY A UKÁZKOVÁ DATA PRO PRVNÍ SPUŠTĚNÍ
+       Stálý klíč STORAGE_KEY zaručí, že ti data v telefonu zůstanou i při
+       budoucích úpravách kódu.
+       ========================================================================== */
+    const STORAGE_KEY = 'chytry_nakup_doma_v1';
+
+    const DAYS = ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota', 'Neděle'];
+    const UNITS = ['ks', 'g', 'kg', 'ml', 'l', 'bal.', 'lžíce'];
+
+    const TAB_META = {
+      shopping: { title: 'Nákupní seznam', subtitle: 'Přehled položek ke koupi a v košíku' },
+      planner:  { title: 'Plánovač jídla',  subtitle: 'Naplánuj týden a odečti zásoby doma' },
+      recipes:  { title: 'Recepty',         subtitle: 'Porovnání s tím, co už máš doma' },
+      pantry:   { title: 'Co mám doma',     subtitle: 'Lednice, spíž i mrazák přehledně' }
+    };
+
+    /**
+     * Výchozí praktická česká data pro první spuštění:
+     * - U receptu „Domácí palačinky“ svítí „Máš vše doma“
+     * - Pondělí a Úterý sdílí Cibuli a Česnek, takže si hned vyzkoušíš chytré
+     *   sečtení i odečtení zásob z „Doma“
+     */
+    function getDefaultState() {
+      return {
+        pantry: [
+          { id: 'pan_1', name: 'Mléko',          amount: 1,   unit: 'l',   location: 'Lednice' },
+          { id: 'pan_2', name: 'Vejce',          amount: 6,   unit: 'ks',  location: 'Lednice' },
+          { id: 'pan_3', name: 'Máslo',          amount: 150, unit: 'g',   location: 'Lednice' },
+          { id: 'pan_4', name: 'Mrkev',          amount: 3,   unit: 'ks',  location: 'Lednice' },
+          { id: 'pan_5', name: 'Hladká mouka',   amount: 500, unit: 'g',   location: 'Spíž' },
+          { id: 'pan_6', name: 'Cibule',         amount: 2,   unit: 'ks',  location: 'Spíž' },
+          { id: 'pan_7', name: 'Česnek',         amount: 4,   unit: 'ks',  location: 'Spíž' },
+          { id: 'pan_8', name: 'Těstoviny',      amount: 500, unit: 'g',   location: 'Spíž' },
+          { id: 'pan_9', name: 'Červená čočka',  amount: 400, unit: 'g',   location: 'Spíž' },
+          { id: 'pan_10', name: 'Mražený hrášek', amount: 300, unit: 'g',  location: 'Mrazák' },
+          { id: 'pan_11', name: 'Mražené maliny', amount: 250, unit: 'g',  location: 'Mrazák' }
+        ],
+
+        recipes: [
+          {
+            id: 'rec_1',
+            name: 'Domácí palačinky',
+            note: 'Těsto nech 10 minut odpočinout a smaž na tenko na kapce másla. Skvělé s malinami z mrazáku.',
+            ingredients: [
+              { name: 'Hladká mouka', amount: 200, unit: 'g' },
+              { name: 'Mléko',        amount: 400, unit: 'ml' },
+              { name: 'Vejce',        amount: 2,   unit: 'ks' },
+              { name: 'Máslo',        amount: 30,  unit: 'g' }
+            ]
+          },
+          {
+            id: 'rec_2',
+            name: 'Těstoviny s rajčatovou omáčkou',
+            note: 'Cibuli a česnek zpěň dozlatova, přidej krájená rajčata, krátce povař a zasyp parmazánem.',
+            ingredients: [
+              { name: 'Těstoviny',       amount: 300, unit: 'g' },
+              { name: 'Cibule',          amount: 1,   unit: 'ks' },
+              { name: 'Česnek',          amount: 3,   unit: 'ks' },
+              { name: 'Krájená rajčata', amount: 1,   unit: 'bal.' },
+              { name: 'Sýr parmazán',    amount: 80,  unit: 'g' }
+            ]
+          },
+          {
+            id: 'rec_3',
+            name: 'Čočková polévka s mrkví',
+            note: 'Propláchnutou čočku uvař s orestovanou cibulí, česnekem a nastrouhanou mrkví do měkka.',
+            ingredients: [
+              { name: 'Červená čočka',    amount: 250, unit: 'g' },
+              { name: 'Mrkev',            amount: 2,   unit: 'ks' },
+              { name: 'Cibule',           amount: 2,   unit: 'ks' },
+              { name: 'Česnek',           amount: 3,   unit: 'ks' },
+              { name: 'Zeleninový vývar', amount: 1,   unit: 'l' }
+            ]
+          },
+          {
+            id: 'rec_4',
+            name: 'Krémové žampionové rizoto',
+            note: 'Podlévej postupně horkým vývarem, ke konci vmíchej hrášek, máslo a parmazán.',
+            ingredients: [
+              { name: 'Rýže na rizoto', amount: 300, unit: 'g' },
+              { name: 'Žampiony',       amount: 250, unit: 'g' },
+              { name: 'Cibule',         amount: 1,   unit: 'ks' },
+              { name: 'Máslo',          amount: 40,  unit: 'g' },
+              { name: 'Mražený hrášek', amount: 150, unit: 'g' },
+              { name: 'Sýr parmazán',   amount: 60,  unit: 'g' }
+            ]
+          }
+        ],
+
+        // Předvyplněné Pondělí a Úterý (oba recepty sdílí cibuli a česnek)
+        plan: {
+          0: [{ id: 'pl_1', recipeId: 'rec_2' }],
+          1: [{ id: 'pl_2', recipeId: 'rec_3' }],
+          2: [], 3: [], 4: [], 5: [], 6: []
+        },
+
+        // 3 ukázkové položky na nákupu (2 ke koupi, 1 už v košíku)
+        shoppingList: [
+          { id: 'sh_1', name: 'Krájená rajčata', amount: 1,   unit: 'bal.', checked: false },
+          { id: 'sh_2', name: 'Žampiony',        amount: 250, unit: 'g',    checked: false },
+          { id: 'sh_3', name: 'Bílý jogurt',     amount: 2,   unit: 'ks',   checked: true }
+        ]
+      };
+    }
+
+    /* ==========================================================================
+       2. UKLÁDÁNÍ A NAČÍTÁNÍ DAT (localStorage – funguje i bez internetu)
+       ========================================================================== */
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return getDefaultState();
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed.pantry) || !Array.isArray(parsed.recipes) || !Array.isArray(parsed.shoppingList)) {
+          return getDefaultState();
+        }
+        return parsed;
+      } catch (err) {
+        console.error('Nepodařilo se načíst data, použiji výchozí:', err);
+        return getDefaultState();
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (err) {
+        console.error('Chyba při ukládání do localStorage:', err);
+        showToast('Pozor: prohlížeč neumožnil uložit změny.');
+      }
+    }
+
+    // Aktuální stav v paměti aplikace
+    let state = loadState();
+    let activeTab = 'shopping';
+    let recipeFilter = 'all';         // 'all' | 'cookable'
+    let pantryLocationFilter = 'Vše'; // 'Vše' | 'Lednice' | 'Spíž' | 'Mrazák'
+    let pantrySearchQuery = '';
+    let openRecipeIds = new Set(['rec_1']);
+    let editingRecipeId = null;       // null = přidávání nového, jinak ID upravovaného receptu
+    let pickerDayIndex = null;
+    let confirmCallback = null;
+
+    /* ==========================================================================
+       3. POMOCNÉ FUNKCE (bezpečné formátování, převody jednotek, shoda zásob)
+       ========================================================================== */
+    function uid(prefix = 'id') {
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function normalizeText(str) {
+      return String(str).trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    function formatAmount(num) {
+      const rounded = Math.round(Number(num) * 100) / 100;
+      if (isNaN(rounded) || rounded <= 0) return '0';
+      return String(rounded).replace('.', ',');
+    }
+
+    // Převod kompatibilních jednotek (g <-> kg, ml <-> l) pro přesné porovnávání
+    function getUnitInfo(unit) {
+      const u = normalizeText(unit);
+      if (u === 'g')  return { group: 'weight', factor: 1 };
+      if (u === 'kg') return { group: 'weight', factor: 1000 };
+      if (u === 'ml') return { group: 'volume', factor: 1 };
+      if (u === 'l')  return { group: 'volume', factor: 1000 };
+      return { group: u, factor: 1 };
+    }
+
+    // Rozumný krok při klikání na "-" a "+" v zásobách podle jednotky
+    function getStepForUnit(unit) {
+      const u = normalizeText(unit);
+      if (u === 'g' || u === 'ml') return 50;
+      if (u === 'kg' || u === 'l') return 0.5;
+      return 1;
+    }
+
+    // Jednoduché rozlišení umístění při přesunu koupeného nákupu do „Doma“
+    function guessLocation(name) {
+      const n = normalizeText(name);
+      if (n.includes('mražen') || n.includes('zmrzlin')) return 'Mrazák';
+      const fridgeKeywords = [
+        'mléko', 'sýr', 'máslo', 'vejce', 'jogurt', 'smetan', 'tvaroh', 'šunk',
+        'kuřec', 'maso', 'salám', 'špenát', 'salát', 'feta', 'parmazán', 'mozzarell',
+        'kefír', 'tofu', 'paprik', 'cuket', 'okurk', 'mrkev', 'žampion', 'houb'
+      ];
+      if (fridgeKeywords.some(k => n.includes(k))) return 'Lednice';
+      return 'Spíž';
+    }
+
+    /**
+     * Porovná surovinu z receptu či plánu se zásobami v „Co mám doma“.
+     * Vrací status ('enough' | 'partial' | 'missing'), chybějící množství a popis stavu doma.
+     */
+    function checkIngredientInPantry(ing) {
+      const normName = normalizeText(ing.name);
+      const matches = state.pantry.filter(p => normalizeText(p.name) === normName && Number(p.amount) > 0);
+
+      if (matches.length === 0) {
+        return { status: 'missing', missingAmount: Number(ing.amount), homeText: '' };
+      }
+
+      const reqInfo = getUnitInfo(ing.unit);
+      const compatible = matches.filter(p => getUnitInfo(p.unit).group === reqInfo.group);
+
+      if (compatible.length > 0) {
+        const haveBase = compatible.reduce((sum, p) => sum + Number(p.amount) * getUnitInfo(p.unit).factor, 0);
+        const needBase = Number(ing.amount) * reqInfo.factor;
+        const first = compatible[0];
+        const homeText = compatible.length === 1
+          ? `${formatAmount(first.amount)} ${first.unit}`
+          : `${formatAmount(haveBase / reqInfo.factor)} ${ing.unit}`;
+
+        if (haveBase >= needBase) {
+          return { status: 'enough', missingAmount: 0, homeText };
+        }
+        const missing = Math.round(((needBase - haveBase) / reqInfo.factor) * 100) / 100;
+        return { status: 'partial', missingAmount: missing, homeText };
+      }
+
+      // Stejný název suroviny, ale jiná jednotka (např. doma v balení, v receptu na lžíce)
+      const first = matches[0];
+      return {
+        status: 'enough',
+        missingAmount: 0,
+        homeText: `${formatAmount(first.amount)} ${first.unit}`
+      };
+    }
+
+    // Vyhodnotí, kolik surovin pro recept má uživatelka doma
+    function evaluateRecipe(recipe) {
+      const total = recipe.ingredients.length;
+      if (total === 0) return { haveCount: 0, total: 0, percent: 100, details: [] };
+
+      const details = recipe.ingredients.map(ing => ({
+        ing,
+        check: checkIngredientInPantry(ing)
+      }));
+
+      const haveCount = details.filter(d => d.check.status === 'enough').length;
+      const percent = Math.round((haveCount / total) * 100);
+      return { haveCount, total, percent, details };
+    }
+
+    /* ==========================================================================
+       4. TOAST NOTIFIKACE A MODÁLNÍ OKNA
+       ========================================================================== */
+    let toastTimer = null;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('opacity-0', 'translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-4');
+      }, 3000);
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function showConfirm(title, message, okLabel, onConfirm) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      document.getElementById('confirmOkBtn').textContent = okLabel || 'Ano, potvrdit';
+      confirmCallback = onConfirm;
+      openModal('confirmModal');
+    }
+
+    /* ==========================================================================
+       5. CHYTRÉ SLUČOVÁNÍ POLOŽEK (NÁKUP, PŘESUN DOMŮ, PŘENOS Z PLÁNU)
+       ========================================================================== */
+    function addOrMergeShoppingItem(name, amount, unit) {
+      const cleanName = name.trim();
+      const numAmount = Math.round((Number(amount) || 1) * 100) / 100;
+      const normName = normalizeText(cleanName);
+      const uInfo = getUnitInfo(unit);
+
+      const existing = state.shoppingList.find(item =>
+        !item.checked &&
+        normalizeText(item.name) === normName &&
+        getUnitInfo(item.unit).group === uInfo.group
+      );
+
+      if (existing) {
+        const existingInfo = getUnitInfo(existing.unit);
+        const totalBase = (Number(existing.amount) * existingInfo.factor) + (numAmount * uInfo.factor);
+        existing.amount = Math.round((totalBase / existingInfo.factor) * 100) / 100;
+        return 'merged';
+      }
+
+      state.shoppingList.unshift({
+        id: uid('sh'),
+        name: cleanName,
+        amount: numAmount,
+        unit: unit,
+        checked: false
+      });
+      return 'added';
+    }
+
+    function addOrMergePantryItem(name, amount, unit, location) {
+      const cleanName = name.trim();
+      const numAmount = Math.round((Number(amount) || 1) * 100) / 100;
+      const normName = normalizeText(cleanName);
+      const uInfo = getUnitInfo(unit);
+
+      const existing = state.pantry.find(item =>
+        normalizeText(item.name) === normName &&
+        getUnitInfo(item.unit).group === uInfo.group
+      );
+
+      if (existing) {
+        const existingInfo = getUnitInfo(existing.unit);
+        const totalBase = (Number(existing.amount) * existingInfo.factor) + (numAmount * uInfo.factor);
+        existing.amount = Math.round((totalBase / existingInfo.factor) * 100) / 100;
+        return 'merged';
+      }
+
+      state.pantry.unshift({
+        id: uid('pan'),
+        name: cleanName,
+        amount: numAmount,
+        unit: unit,
+        location: location || guessLocation(cleanName)
+      });
+      return 'added';
+    }
+
+    // Přesune všechny odškrtnuté položky z košíku do záložky Doma
+    function moveBoughtItemsHome() {
+      const bought = state.shoppingList.filter(i => i.checked);
+      if (bought.length === 0) return;
+
+      let added = 0;
+      let merged = 0;
+      bought.forEach(item => {
+        const res = addOrMergePantryItem(item.name, item.amount, item.unit, guessLocation(item.name));
+        if (res === 'added') added++;
+        else merged++;
+      });
+
+      state.shoppingList = state.shoppingList.filter(i => !i.checked);
+      saveState();
+      renderShopping();
+
+      if (added > 0 && merged > 0) {
+        showToast(`Přesunuto domů: ${added} nových a ${merged} přičteno k zásobám.`);
+      } else if (merged > 0) {
+        showToast(`Přesunuto domů a přičteno k zásobám (${merged}).`);
+      } else {
+        showToast(`Přesunuto domů (${added} položek).`);
+      }
+    }
+
+    // Projde celý týdenní plán, sečte stejné suroviny a při zapnutém přepínači odečte zásoby doma
+    function addPlanToShoppingList() {
+      const subtractPantry = document.getElementById('subtractPantryToggle').checked;
+      const aggregated = new Map();
+      let plannedMealsCount = 0;
+
+      for (let d = 0; d < 7; d++) {
+        const meals = state.plan[d] || [];
+        meals.forEach(meal => {
+          const recipe = state.recipes.find(r => r.id === meal.recipeId);
+          if (!recipe) return;
+          plannedMealsCount++;
+
+          recipe.ingredients.forEach(ing => {
+            const uInfo = getUnitInfo(ing.unit);
+            const key = `${normalizeText(ing.name)}|${uInfo.group}`;
+
+            if (aggregated.has(key)) {
+              const entry = aggregated.get(key);
+              const entryInfo = getUnitInfo(entry.unit);
+              const combinedBase = (entry.amount * entryInfo.factor) + (Number(ing.amount) * uInfo.factor);
+              entry.amount = Math.round((combinedBase / entryInfo.factor) * 100) / 100;
+            } else {
+              aggregated.set(key, {
+                name: ing.name,
+                amount: Number(ing.amount),
+                unit: ing.unit
+              });
+            }
+          });
+        });
+      }
+
+      if (plannedMealsCount === 0) {
+        showToast('Nejdřív si do týdenního plánu přidej alespoň jeden recept.');
+        return;
+      }
+
+      let addedToShop = 0;
+      let coveredAtHome = 0;
+
+      aggregated.forEach(ing => {
+        if (subtractPantry) {
+          const check = checkIngredientInPantry(ing);
+          if (check.status === 'enough') {
+            coveredAtHome++;
+            return;
+          }
+          const amountToBuy = check.status === 'partial' ? check.missingAmount : ing.amount;
+          addOrMergeShoppingItem(ing.name, amountToBuy, ing.unit);
+          addedToShop++;
+        } else {
+          addOrMergeShoppingItem(ing.name, ing.amount, ing.unit);
+          addedToShop++;
+        }
+      });
+
+      saveState();
+      updateShoppingBadge();
+
+      if (addedToShop === 0 && coveredAtHome > 0) {
+        showToast(`Všech ${coveredAtHome} surovin z plánu už máš doma!`);
+      } else if (coveredAtHome > 0) {
+        showToast(`Přidáno do nákupu: ${addedToShop} chybějících (${coveredAtHome} už máš doma).`);
+      } else {
+        showToast(`Přidáno do nákupu: ${addedToShop} surovin z týdenního plánu.`);
+      }
+    }
+
+    /* ==========================================================================
+       6. VYKRESLOVÁNÍ ZÁLOŽKY 1: NÁKUP
+       ========================================================================== */
+    function updateShoppingBadge() {
+      const remaining = state.shoppingList.filter(i => !i.checked).length;
+      const badge = document.getElementById('shoppingBadge');
+      if (remaining > 0) {
+        badge.textContent = remaining > 99 ? '99+' : remaining;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function renderShopping() {
+      const container = document.getElementById('shoppingListContainer');
+      const progressBox = document.getElementById('shoppingProgressBox');
+      const basketBar = document.getElementById('basketActionsBar');
+
+      const toBuy = state.shoppingList.filter(i => !i.checked);
+      const inBasket = state.shoppingList.filter(i => i.checked);
+      const total = state.shoppingList.length;
+
+      updateShoppingBadge();
+
+      if (total === 0) {
+        progressBox.classList.add('hidden');
+        basketBar.classList.add('hidden');
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 text-center border border-sage-border shadow-sm">
+            <div class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-sage-pastel text-sage flex items-center justify-center">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+            </div>
+            <div class="font-semibold text-sage-ink text-sm">Nákupní seznam je prázdný</div>
+            <p class="text-xs text-sage-muted mt-1">Přidej položku nahoře nebo si ji doplň z plánu či receptů.</p>
+          </div>
+        `;
+        return;
+      }
+
+      progressBox.classList.remove('hidden');
+      const percent = Math.round((inBasket.length / total) * 100);
+      document.getElementById('progressText').textContent = `V košíku ${inBasket.length} z ${total}`;
+      document.getElementById('progressPercent').textContent = `${percent} %`;
+      document.getElementById('progressFill').style.width = `${percent}%`;
+
+      if (inBasket.length > 0) {
+        basketBar.classList.remove('hidden');
+        document.getElementById('basketSummaryText').textContent =
+          `V košíku máš ${inBasket.length} ${inBasket.length === 1 ? 'položku' : inBasket.length < 5 ? 'položky' : 'položek'} – po nákupu je můžeš jedním klepnutím uložit domů.`;
+      } else {
+        basketBar.classList.add('hidden');
+      }
+
+      const renderRow = (item) => `
+        <div
+          data-action="toggle-shop"
+          data-id="${escapeHtml(item.id)}"
+          class="flex items-center gap-3 px-3.5 py-3 border-b border-sage-border/70 last:border-b-0 cursor-pointer active:bg-sage-bg transition select-none"
+        >
+          <span class="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+            item.checked ? 'bg-sage border-sage text-white' : 'border-sage-soft bg-white'
+          }">
+            ${item.checked ? '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+          </span>
+
+          <span class="flex-1 text-sm font-medium break-words ${
+            item.checked ? 'line-through text-sage-muted/70' : 'text-sage-ink'
+          }">${escapeHtml(item.name)}</span>
+
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
+            item.checked ? 'bg-sage-bg text-sage-muted/70 line-through' : 'bg-sage-pastel text-sage-dark'
+          }">${escapeHtml(formatAmount(item.amount))} ${escapeHtml(item.unit)}</span>
+
+          <button
+            type="button"
+            data-action="delete-shop"
+            data-id="${escapeHtml(item.id)}"
+            aria-label="Smazat položku"
+            class="w-9 h-9 rounded-xl text-sage-muted/60 hover:text-danger hover:bg-danger-bg flex items-center justify-center shrink-0 transition"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6"></path><path d="M14 11v6"></path>
+            </svg>
+          </button>
+        </div>
+      `;
+
+      let html = `
+        <div class="mb-4">
+          <div class="flex items-center justify-between px-1 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-sage-muted">Ke koupi</span>
+            <span class="text-xs font-semibold text-sage-dark bg-sage-pastel px-2 py-0.5 rounded-full">${toBuy.length}</span>
+          </div>
+          ${toBuy.length > 0
+            ? `<div class="bg-white rounded-2xl shadow-sm border border-sage-border overflow-hidden">${toBuy.map(renderRow).join('')}</div>`
+            : `<div class="bg-white rounded-2xl p-4 text-center text-xs text-sage-muted border border-sage-border">Všechno už máš v košíku.</div>`
+          }
+        </div>
+      `;
+
+      if (inBasket.length > 0) {
+        html += `
+          <div>
+            <div class="flex items-center justify-between px-1 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-sage-muted">V košíku</span>
+              <span class="text-xs font-semibold text-sage-muted bg-sage-pastel/80 px-2 py-0.5 rounded-full">${inBasket.length}</span>
+            </div>
+            <div class="bg-white/85 rounded-2xl shadow-sm border border-sage-border/80 overflow-hidden">
+              ${inBasket.map(renderRow).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    /* ==========================================================================
+       7. VYKRESLOVÁNÍ ZÁLOŽKY 2: PLÁNOVAČ JÍDLA (Po–Ne)
+       ========================================================================== */
+    function renderPlanner() {
+      const container = document.getElementById('plannerDaysContainer');
+
+      container.innerHTML = DAYS.map((dayName, dayIdx) => {
+        const meals = state.plan[dayIdx] || [];
+
+        const mealsHtml = meals.length === 0
+          ? `<div class="text-xs text-sage-muted/75 italic pt-1">Zatím nic nenaplánováno</div>`
+          : `<div class="space-y-2 mt-2.5">${meals.map(meal => {
+              const recipe = state.recipes.find(r => r.id === meal.recipeId);
+              if (!recipe) return '';
+              const evalRes = evaluateRecipe(recipe);
+              const badgeClass = evalRes.percent === 100
+                ? 'bg-sage-pastel text-sage-dark'
+                : 'bg-ochre-bg text-ochre-text';
+              const badgeText = evalRes.percent === 100
+                ? 'Máš vše doma'
+                : `Máš ${evalRes.haveCount} z ${evalRes.total} surovin`;
+
+              return `
+                <div class="flex items-center justify-between gap-2 bg-sage-bg rounded-xl px-3 py-2.5 border border-sage-border">
+                  <div class="min-w-0 flex-1">
+                    <div class="text-sm font-semibold text-sage-ink truncate">${escapeHtml(recipe.name)}</div>
+                    <div class="mt-1">
+                      <span class="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    data-action="remove-plan-meal"
+                    data-day="${dayIdx}"
+                    data-meal="${escapeHtml(meal.id)}"
+                    aria-label="Odebrat recept ze dne"
+                    class="w-9 h-9 rounded-xl text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center shrink-0 transition"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+              `;
+            }).join('')}</div>`;
+
+        return `
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-sage-border">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-sage-ink text-sm">${dayName}</span>
+              <button
+                type="button"
+                data-action="open-meal-picker"
+                data-day="${dayIdx}"
+                class="px-3 py-1.5 rounded-xl bg-sage-pastel hover:bg-sage-soft/70 active:scale-95 text-sage-dark text-xs font-semibold transition"
+              >
+                + Přidat jídlo
+              </button>
+            </div>
+            ${mealsHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openMealPicker(dayIdx) {
+      if (state.recipes.length === 0) {
+        showToast('Nejdřív si přidej alespoň jeden recept v záložce Recepty.');
+        return;
+      }
+      pickerDayIndex = dayIdx;
+      document.getElementById('mealPickerTitle').textContent = `Přidat jídlo na ${DAYS[dayIdx]}`;
+
+      const sorted = [...state.recipes]
+        .map(r => ({ recipe: r, evalRes: evaluateRecipe(r) }))
+        .sort((a, b) => b.evalRes.percent - a.evalRes.percent);
+
+      document.getElementById('mealPickerList').innerHTML = sorted.map(({ recipe, evalRes }) => `
+        <button
+          type="button"
+          data-action="pick-recipe-for-day"
+          data-recipe="${escapeHtml(recipe.id)}"
+          class="w-full text-left p-3.5 rounded-2xl bg-sage-bg hover:bg-sage-pastel border border-sage-border active:scale-[0.99] transition flex items-center justify-between gap-3"
+        >
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-sage-ink">${escapeHtml(recipe.name)}</div>
+            <div class="text-xs text-sage-muted mt-0.5">${recipe.ingredients.length} surovin</div>
+          </div>
+          <span class="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+            evalRes.percent === 100
+              ? 'bg-sage text-white'
+              : 'bg-ochre-bg text-ochre-text border border-ochre-border'
+          }">
+            ${evalRes.percent === 100 ? 'Máš vše doma' : `${evalRes.haveCount} z ${evalRes.total}`}
+          </span>
+        </button>
+      `).join('');
+
+      openModal('mealPickerModal');
+    }
+
+    /* ==========================================================================
+       8. VYKRESLOVÁNÍ ZÁLOŽKY 3: RECEPTY (S přidáním, úpravou a mazáním)
+       ========================================================================== */
+    function renderRecipes() {
+      const container = document.getElementById('recipesListContainer');
+
+      document.querySelectorAll('.recipe-filter-btn').forEach(btn => {
+        const isActive = btn.dataset.recipeFilter === recipeFilter;
+        btn.className = `recipe-filter-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm transition ${
+          isActive ? 'bg-white text-sage-ink font-semibold shadow-sm' : 'text-sage-muted font-medium'
+        }`;
+      });
+
+      if (state.recipes.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 text-center border border-sage-border shadow-sm">
+            <div class="font-semibold text-sage-ink text-sm">Zatím nemáš žádné recepty</div>
+            <p class="text-xs text-sage-muted mt-1">Klepni na „+ Nový recept“ a ulož si svoje oblíbené jídlo.</p>
+          </div>
+        `;
+        return;
+      }
+
+      let list = state.recipes.map(recipe => ({
+        recipe,
+        evalRes: evaluateRecipe(recipe)
+      }));
+
+      // Filtr „Co můžu uvařit“ zobrazí recepty s alespoň polovinou surovin doma, seřazené podle shody
+      if (recipeFilter === 'cookable') {
+        list = list
+          .filter(item => item.evalRes.percent >= 50)
+          .sort((a, b) => b.evalRes.percent - a.evalRes.percent || b.evalRes.haveCount - a.evalRes.haveCount);
+
+        if (list.length === 0) {
+          container.innerHTML = `
+            <div class="bg-white rounded-2xl p-8 text-center border border-sage-border shadow-sm">
+              <div class="font-semibold text-sage-ink text-sm">Zatím nemáš dost surovin na žádný recept</div>
+              <p class="text-xs text-sage-muted mt-1">Doplň zásoby v sekci „Doma“ nebo přepni filtr na „Všechny“.</p>
+            </div>
+          `;
+          return;
+        }
+      }
+
+      container.innerHTML = list.map(({ recipe, evalRes }) => {
+        const isOpen = openRecipeIds.has(recipe.id);
+        const allHome = evalRes.percent === 100;
+        const missingCount = evalRes.details.filter(d => d.check.status !== 'enough').length;
+
+        const statusBadge = allHome
+          ? `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-sage-pastel text-sage-dark border border-sage-soft/70">✓ Máš vše doma</span>`
+          : `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-ochre-bg text-ochre-text border border-ochre-border">Máš ${evalRes.haveCount} z ${evalRes.total} surovin</span>`;
+
+        const ingredientsHtml = evalRes.details.map(({ ing, check }) => {
+          let iconHtml = '';
+          let statusNote = '';
+
+          if (check.status === 'enough') {
+            iconHtml = `<span class="w-5 h-5 rounded-full bg-sage-pastel text-sage-dark flex items-center justify-center shrink-0 text-xs font-bold">✓</span>`;
+            statusNote = `<span class="text-[11px] text-sage-dark bg-sage-bg border border-sage-border px-2 py-0.5 rounded-full">doma: ${escapeHtml(check.homeText)}</span>`;
+          } else if (check.status === 'partial') {
+            iconHtml = `<span class="w-5 h-5 rounded-full bg-ochre-bg text-ochre-text flex items-center justify-center shrink-0 text-xs font-bold">!</span>`;
+            statusNote = `<span class="text-[11px] text-ochre-text bg-ochre-bg border border-ochre-border px-2 py-0.5 rounded-full">doma ${escapeHtml(check.homeText)}, chybí ${escapeHtml(formatAmount(check.missingAmount))} ${escapeHtml(ing.unit)}</span>`;
+          } else {
+            iconHtml = `<span class="w-5 h-5 rounded-full bg-ochre-bg text-ochre-text flex items-center justify-center shrink-0 text-xs font-bold">–</span>`;
+            statusNote = `<span class="text-[11px] text-ochre-text bg-ochre-bg/70 border border-ochre-border px-2 py-0.5 rounded-full">chybí</span>`;
+          }
+
+          return `
+            <li class="flex items-center justify-between gap-2 py-2 border-b border-sage-border/60 last:border-b-0">
+              <div class="flex items-center gap-2.5 min-w-0">
+                ${iconHtml}
+                <span class="text-sm text-sage-ink truncate">
+                  <strong class="font-semibold">${escapeHtml(formatAmount(ing.amount))} ${escapeHtml(ing.unit)}</strong>
+                  ${escapeHtml(ing.name)}
+                </span>
+              </div>
+              <div class="shrink-0">${statusNote}</div>
+            </li>
+          `;
+        }).join('');
+
+        return `
+          <div class="bg-white rounded-2xl shadow-sm border ${allHome ? 'border-sage-soft' : 'border-sage-border'} overflow-hidden">
+            <div data-action="toggle-recipe" data-id="${escapeHtml(recipe.id)}" class="p-4 cursor-pointer active:bg-sage-bg transition">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <h3 class="font-semibold text-sage-ink text-sm sm:text-base leading-snug">${escapeHtml(recipe.name)}</h3>
+                  <div class="flex flex-wrap items-center gap-2 mt-2">
+                    ${statusBadge}
+                    <span class="text-xs text-sage-muted">${recipe.ingredients.length} surovin</span>
+                  </div>
+                </div>
+                <svg class="w-5 h-5 text-sage-muted shrink-0 mt-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            ${isOpen ? `
+              <div class="px-4 pb-4 pt-1 border-t border-sage-border/70">
+                ${recipe.note ? `<p class="text-xs text-sage-muted bg-sage-bg rounded-xl px-3 py-2 my-2 border border-sage-border/80 leading-relaxed">${escapeHtml(recipe.note)}</p>` : ''}
+                <ul class="mb-3">${ingredientsHtml}</ul>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    data-action="add-missing-from-recipe"
+                    data-id="${escapeHtml(recipe.id)}"
+                    ${allHome ? 'disabled' : ''}
+                    class="flex-1 min-h-[42px] px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center ${
+                      allHome
+                        ? 'bg-sage-pastel text-sage-dark cursor-default'
+                        : 'bg-sage hover:bg-sage-dark active:scale-[0.98] text-white shadow-sm'
+                    }"
+                  >
+                    ${allHome ? '✓ Máš vše doma' : `Dokoupit chybějící (${missingCount})`}
+                  </button>
+
+                  <!-- Tlačítko pro úpravu receptu -->
+                  <button
+                    type="button"
+                    data-action="edit-recipe"
+                    data-id="${escapeHtml(recipe.id)}"
+                    title="Upravit recept"
+                    aria-label="Upravit recept"
+                    class="w-10 h-[42px] rounded-xl bg-sage-bg hover:bg-sage-pastel text-sage-muted hover:text-sage-dark flex items-center justify-center shrink-0 transition border border-sage-border"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                  </button>
+
+                  <!-- Tlačítko pro smazání receptu -->
+                  <button
+                    type="button"
+                    data-action="delete-recipe"
+                    data-id="${escapeHtml(recipe.id)}"
+                    title="Smazat recept"
+                    aria-label="Smazat recept"
+                    class="w-10 h-[42px] rounded-xl bg-sage-bg hover:bg-danger-bg text-sage-muted hover:text-danger flex items-center justify-center shrink-0 transition border border-sage-border"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Přidá jeden dynamický řádek suroviny do modálu receptu (s volitelnými předvyplněnými hodnotami)
+    function addDraftIngredientRow(prefill = null) {
+      const container = document.getElementById('draftIngredientsContainer');
+      const row = document.createElement('div');
+      row.className = 'draft-ing-row bg-sage-bg p-2.5 rounded-xl border border-sage-border space-y-2';
+
+      const selectedUnit = prefill && UNITS.includes(prefill.unit) ? prefill.unit : UNITS[0];
+      const unitOptions = UNITS.map(u => `<option value="${u}" ${u === selectedUnit ? 'selected' : ''}>${u}</option>`).join('');
+
+      row.innerHTML = `
+        <div class="flex gap-2">
+          <input
+            type="text"
+            class="draft-ing-name flex-1 h-10 px-3 rounded-lg bg-white border border-sage-border text-sm text-sage-ink focus:outline-none focus:border-sage"
+            placeholder="Surovina (např. Mrkev)"
+            value="${prefill ? escapeHtml(prefill.name) : ''}"
+            required
+          >
+          <button
+            type="button"
+            class="remove-draft-ing w-10 h-10 rounded-lg bg-white border border-sage-border text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center shrink-0 transition"
+            aria-label="Odebrat surovinu"
+          >✕</button>
+        </div>
+        <div class="flex gap-2">
+          <input
+            type="number"
+            class="draft-ing-amount w-24 h-10 px-3 rounded-lg bg-white border border-sage-border text-sm text-sage-ink focus:outline-none focus:border-sage"
+            value="${prefill ? escapeHtml(prefill.amount) : '1'}"
+            min="0.1"
+            step="any"
+            required
+          >
+          <select class="draft-ing-unit flex-1 h-10 px-2.5 rounded-lg bg-white border border-sage-border text-sm text-sage-ink focus:outline-none focus:border-sage">
+            ${unitOptions}
+          </select>
+        </div>
+      `;
+
+      row.querySelector('.remove-draft-ing').addEventListener('click', () => {
+        if (container.children.length > 1) {
+          row.remove();
+        } else {
+          showToast('Recept musí obsahovat alespoň jednu surovinu.');
+        }
+      });
+
+      container.appendChild(row);
+    }
+
+    // Otevře formulář pro přidání nového receptu nebo úpravu existujícího
+    function openRecipeModal(recipeToEdit = null) {
+      document.getElementById('recipeForm').reset();
+      const ingContainer = document.getElementById('draftIngredientsContainer');
+      ingContainer.innerHTML = '';
+
+      if (recipeToEdit) {
+        editingRecipeId = recipeToEdit.id;
+        document.getElementById('recipeModalTitle').textContent = 'Upravit recept';
+        document.getElementById('recipeSubmitBtn').textContent = 'Uložit změny';
+        document.getElementById('recipeNameInput').value = recipeToEdit.name;
+        document.getElementById('recipeNoteInput').value = recipeToEdit.note || '';
+        recipeToEdit.ingredients.forEach(ing => addDraftIngredientRow(ing));
+      } else {
+        editingRecipeId = null;
+        document.getElementById('recipeModalTitle').textContent = 'Nový recept';
+        document.getElementById('recipeSubmitBtn').textContent = 'Uložit recept';
+        addDraftIngredientRow();
+        addDraftIngredientRow();
+      }
+
+      openModal('recipeFormModal');
+      setTimeout(() => document.getElementById('recipeNameInput').focus(), 50);
+    }
+
+    /* ==========================================================================
+       9. VYKRESLOVÁNÍ ZÁLOŽKY 4: DOMA („Co mám doma“)
+       ========================================================================== */
+    function renderPantry() {
+      const container = document.getElementById('pantryListContainer');
+
+      document.querySelectorAll('.pantry-pill').forEach(btn => {
+        const active = btn.dataset.loc === pantryLocationFilter;
+        btn.className = `pantry-pill px-3.5 py-1.5 rounded-full text-xs transition shrink-0 ${
+          active
+            ? 'bg-sage text-white font-semibold shadow-sm'
+            : 'bg-white text-sage-ink font-medium border border-sage-border hover:bg-sage-bg'
+        }`;
+      });
+
+      const q = normalizeText(pantrySearchQuery);
+      const filtered = state.pantry.filter(item => {
+        const locOk = pantryLocationFilter === 'Vše' || item.location === pantryLocationFilter;
+        const searchOk = !q || normalizeText(item.name).includes(q);
+        return locOk && searchOk;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 text-center border border-sage-border shadow-sm">
+            <div class="font-semibold text-sage-ink text-sm">Tady zatím nic není</div>
+            <p class="text-xs text-sage-muted mt-1">
+              ${q || pantryLocationFilter !== 'Vše'
+                ? 'Zkus upravit filtr nebo vyhledávaný text.'
+                : 'Přidej suroviny nahoře nebo přesuň koupený nákup z košíku.'}
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => `
+        <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-sage-border flex items-center justify-between gap-2">
+          <!-- Název a umístění -->
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-semibold text-sage-ink truncate">${escapeHtml(item.name)}</div>
+            <div class="inline-flex items-center mt-1 text-[11px] font-medium text-sage-muted bg-sage-bg px-2 py-0.5 rounded-full border border-sage-border">
+              ${escapeHtml(item.location)}
+            </div>
+          </div>
+
+          <!-- Rychlá tlačítka "-" a "+" pro pohodlné ubírání při vaření -->
+          <div class="flex items-center bg-sage-bg border border-sage-border rounded-xl p-0.5 shrink-0">
+            <button
+              type="button"
+              data-action="pantry-minus"
+              data-id="${escapeHtml(item.id)}"
+              aria-label="Snížit množství"
+              class="w-8 h-8 rounded-lg hover:bg-white active:scale-90 text-sage-dark font-bold text-base flex items-center justify-center transition"
+            >−</button>
+            <span class="px-1.5 text-xs font-semibold text-sage-ink min-w-[54px] text-center whitespace-nowrap">
+              ${escapeHtml(formatAmount(item.amount))} ${escapeHtml(item.unit)}
+            </span>
+            <button
+              type="button"
+              data-action="pantry-plus"
+              data-id="${escapeHtml(item.id)}"
+              aria-label="Zvýšit množství"
+              class="w-8 h-8 rounded-lg hover:bg-white active:scale-90 text-sage-dark font-bold text-base flex items-center justify-center transition"
+            >+</button>
+          </div>
+
+          <!-- Tlačítko Dokoupit (ikona košíku) a Smazat -->
+          <div class="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              data-action="pantry-restock"
+              data-id="${escapeHtml(item.id)}"
+              title="Dokoupit (přidat do nákupu)"
+              aria-label="Dokoupit"
+              class="w-9 h-9 rounded-xl bg-sage-pastel hover:bg-sage text-sage-dark hover:text-white active:scale-95 flex items-center justify-center transition"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              data-action="pantry-delete"
+              data-id="${escapeHtml(item.id)}"
+              title="Smazat ze zásob"
+              aria-label="Smazat surovinu"
+              class="w-9 h-9 rounded-xl text-sage-muted/60 hover:text-danger hover:bg-danger-bg flex items-center justify-center transition"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* ==========================================================================
+       10. PŘEPÍNÁNÍ ZÁLOŽEK A SPUŠTĚNÍ VŠECH UDÁLOSTÍ
+       ========================================================================== */
+    function switchTab(tabName) {
+      activeTab = tabName;
+
+      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        const isActive = btn.dataset.tab === tabName;
+        btn.classList.toggle('bg-sage-pastel', isActive);
+        btn.classList.toggle('text-sage-dark', isActive);
+        btn.classList.toggle('font-semibold', isActive);
+        btn.classList.toggle('text-sage-muted', !isActive);
+        btn.classList.toggle('font-medium', !isActive);
+      });
+
+      document.getElementById('headerTitle').textContent = TAB_META[tabName].title;
+      document.getElementById('headerSubtitle').textContent = TAB_META[tabName].subtitle;
+
+      if (tabName === 'shopping') renderShopping();
+      if (tabName === 'planner')  renderPlanner();
+      if (tabName === 'recipes')  renderRecipes();
+      if (tabName === 'pantry')   renderPantry();
+
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    function initApp() {
+      // Naplnění výběrů jednotek
+      const unitOptionsHtml = UNITS.map(u => `<option value="${u}">${u}</option>`).join('');
+      document.getElementById('quickUnit').innerHTML = unitOptionsHtml;
+      document.getElementById('pantryUnit').innerHTML = unitOptionsHtml;
+
+      // Spodní navigace
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      // Obnovení ukázkových dat
+      document.getElementById('resetDemoBtn').addEventListener('click', () => {
+        showConfirm(
+          'Obnovit ukázková data?',
+          'Současný nákup, týdenní plán, recepty i zásoby doma se vrátí do výchozího ukázkového stavu.',
+          'Obnovit data',
+          () => {
+            state = getDefaultState();
+            openRecipeIds = new Set(['rec_1']);
+            saveState();
+            switchTab(activeTab);
+            updateShoppingBadge();
+            showToast('Ukázková data byla obnovena.');
+          }
+        );
+      });
+
+      /* --- UDÁLOSTI: NÁKUP --- */
+      document.getElementById('quickAddForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nameEl = document.getElementById('quickName');
+        const amountEl = document.getElementById('quickAmount');
+        const unit = document.getElementById('quickUnit').value;
+        if (!nameEl.value.trim()) return;
+
+        const res = addOrMergeShoppingItem(nameEl.value, amountEl.value, unit);
+        saveState();
+        renderShopping();
+        nameEl.value = '';
+        amountEl.value = '1';
+        nameEl.focus();
+        showToast(res === 'merged' ? 'Množství přičteno k položce v nákupu.' : 'Přidáno do nákupu.');
+      });
+
+      document.getElementById('shoppingListContainer').addEventListener('click', (e) => {
+        const delBtn = e.target.closest('[data-action="delete-shop"]');
+        if (delBtn) {
+          e.stopPropagation();
+          state.shoppingList = state.shoppingList.filter(i => i.id !== delBtn.dataset.id);
+          saveState();
+          renderShopping();
+          return;
+        }
+
+        const row = e.target.closest('[data-action="toggle-shop"]');
+        if (row) {
+          const item = state.shoppingList.find(i => i.id === row.dataset.id);
+          if (item) {
+            item.checked = !item.checked;
+            saveState();
+            renderShopping();
+          }
+        }
+      });
+
+      document.getElementById('moveBoughtHomeBtn').addEventListener('click', moveBoughtItemsHome);
+
+      document.getElementById('clearBoughtBtn').addEventListener('click', () => {
+        const count = state.shoppingList.filter(i => i.checked).length;
+        if (count === 0) return;
+        state.shoppingList = state.shoppingList.filter(i => !i.checked);
+        saveState();
+        renderShopping();
+        showToast(`Smazáno ${count} koupených položek.`);
+      });
+
+      /* --- UDÁLOSTI: PLÁNOVAČ --- */
+      document.getElementById('generateShoppingBtn').addEventListener('click', addPlanToShoppingList);
+
+      document.getElementById('plannerDaysContainer').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const dayIdx = Number(btn.dataset.day);
+
+        if (btn.dataset.action === 'open-meal-picker') {
+          openMealPicker(dayIdx);
+        } else if (btn.dataset.action === 'remove-plan-meal') {
+          state.plan[dayIdx] = (state.plan[dayIdx] || []).filter(m => m.id !== btn.dataset.meal);
+          saveState();
+          renderPlanner();
+        }
+      });
+
+      document.getElementById('mealPickerList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="pick-recipe-for-day"]');
+        if (!btn || pickerDayIndex === null) return;
+
+        if (!state.plan[pickerDayIndex]) state.plan[pickerDayIndex] = [];
+        state.plan[pickerDayIndex].push({ id: uid('pl'), recipeId: btn.dataset.recipe });
+        saveState();
+        closeModal('mealPickerModal');
+        renderPlanner();
+        showToast(`Přidáno do plánu na ${DAYS[pickerDayIndex]}.`);
+      });
+
+      document.getElementById('clearPlanBtn').addEventListener('click', () => {
+        showConfirm(
+          'Vymazat celý týdenní plán?',
+          'Odstraní se všechna naplánovaná jídla od pondělí do neděle.',
+          'Vymazat plán',
+          () => {
+            state.plan = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+            saveState();
+            renderPlanner();
+            showToast('Týdenní plán byl vymazán.');
+          }
+        );
+      });
+
+      /* --- UDÁLOSTI: RECEPTY --- */
+      document.querySelectorAll('.recipe-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          recipeFilter = btn.dataset.recipeFilter;
+          renderRecipes();
+        });
+      });
+
+      document.getElementById('openNewRecipeModalBtn').addEventListener('click', () => openRecipeModal(null));
+      document.getElementById('addDraftIngBtn').addEventListener('click', () => addDraftIngredientRow());
+
+      document.getElementById('recipeForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('recipeNameInput').value.trim();
+        const note = document.getElementById('recipeNoteInput').value.trim();
+
+        const ingredients = [];
+        document.querySelectorAll('#draftIngredientsContainer .draft-ing-row').forEach(row => {
+          const ingName = row.querySelector('.draft-ing-name').value.trim();
+          const ingAmount = Number(row.querySelector('.draft-ing-amount').value);
+          const ingUnit = row.querySelector('.draft-ing-unit').value;
+          if (ingName && ingAmount > 0) {
+            ingredients.push({ name: ingName, amount: ingAmount, unit: ingUnit });
+          }
+        });
+
+        if (!name || ingredients.length === 0) {
+          showToast('Vyplň název receptu a alespoň jednu surovinu.');
+          return;
+        }
+
+        if (editingRecipeId) {
+          const existing = state.recipes.find(r => r.id === editingRecipeId);
+          if (existing) {
+            existing.name = name;
+            existing.note = note;
+            existing.ingredients = ingredients;
+          }
+          showToast(`Recept „${name}“ byl upraven.`);
+        } else {
+          const newRecipe = { id: uid('rec'), name, note, ingredients };
+          state.recipes.unshift(newRecipe);
+          openRecipeIds.add(newRecipe.id);
+          showToast(`Recept „${name}“ byl uložen.`);
+        }
+
+        editingRecipeId = null;
+        saveState();
+        closeModal('recipeFormModal');
+        renderRecipes();
+      });
+
+      document.getElementById('recipesListContainer').addEventListener('click', (e) => {
+        const addMissingBtn = e.target.closest('[data-action="add-missing-from-recipe"]');
+        if (addMissingBtn) {
+          const recipe = state.recipes.find(r => r.id === addMissingBtn.dataset.id);
+          if (!recipe) return;
+          const evalRes = evaluateRecipe(recipe);
+          let added = 0;
+
+          evalRes.details.forEach(({ ing, check }) => {
+            if (check.status !== 'enough') {
+              const amount = check.status === 'partial' ? check.missingAmount : ing.amount;
+              addOrMergeShoppingItem(ing.name, amount, ing.unit);
+              added++;
+            }
+          });
+
+          if (added > 0) {
+            saveState();
+            updateShoppingBadge();
+            showToast(`Přidáno do nákupu: ${added} chybějících surovin.`);
+          } else {
+            showToast('Všechny suroviny už máš doma.');
+          }
+          return;
+        }
+
+        const editBtn = e.target.closest('[data-action="edit-recipe"]');
+        if (editBtn) {
+          const recipe = state.recipes.find(r => r.id === editBtn.dataset.id);
+          if (recipe) openRecipeModal(recipe);
+          return;
+        }
+
+        const delBtn = e.target.closest('[data-action="delete-recipe"]');
+        if (delBtn) {
+          const id = delBtn.dataset.id;
+          const recipe = state.recipes.find(r => r.id === id);
+          showConfirm(
+            'Smazat recept?',
+            `Opravdu chceš smazat recept „${recipe ? recipe.name : ''}“? Odebere se i z týdenního plánu.`,
+            'Smazat recept',
+            () => {
+              state.recipes = state.recipes.filter(r => r.id !== id);
+              for (let d = 0; d < 7; d++) {
+                state.plan[d] = (state.plan[d] || []).filter(m => m.recipeId !== id);
+              }
+              saveState();
+              renderRecipes();
+              showToast('Recept byl smazán.');
+            }
+          );
+          return;
+        }
+
+        const toggleHeader = e.target.closest('[data-action="toggle-recipe"]');
+        if (toggleHeader) {
+          const id = toggleHeader.dataset.id;
+          if (openRecipeIds.has(id)) openRecipeIds.delete(id);
+          else openRecipeIds.add(id);
+          renderRecipes();
+        }
+      });
+
+      /* --- UDÁLOSTI: DOMA („Co mám doma“) --- */
+      document.getElementById('addPantryForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nameEl = document.getElementById('pantryName');
+        const amountEl = document.getElementById('pantryAmount');
+        const unit = document.getElementById('pantryUnit').value;
+        const location = document.getElementById('pantryLocation').value;
+        if (!nameEl.value.trim()) return;
+
+        const res = addOrMergePantryItem(nameEl.value, amountEl.value, unit, location);
+        saveState();
+        renderPantry();
+        nameEl.value = '';
+        amountEl.value = '1';
+        nameEl.focus();
+        showToast(res === 'merged' ? 'Množství přičteno k zásobám doma.' : 'Uloženo do „Co mám doma“.');
+      });
+
+      document.getElementById('pantryFilterPills').addEventListener('click', (e) => {
+        const pill = e.target.closest('.pantry-pill');
+        if (!pill) return;
+        pantryLocationFilter = pill.dataset.loc;
+        renderPantry();
+      });
+
+      document.getElementById('pantrySearchInput').addEventListener('input', (e) => {
+        pantrySearchQuery = e.target.value;
+        renderPantry();
+      });
+
+      document.getElementById('pantryListContainer').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const item = state.pantry.find(p => p.id === id);
+        if (!item) return;
+
+        const action = btn.dataset.action;
+
+        if (action === 'pantry-plus') {
+          const step = getStepForUnit(item.unit);
+          item.amount = Math.round((Number(item.amount) + step) * 100) / 100;
+          saveState();
+          renderPantry();
+        } else if (action === 'pantry-minus') {
+          const step = getStepForUnit(item.unit);
+          const next = Math.round((Number(item.amount) - step) * 100) / 100;
+          if (next <= 0) {
+            state.pantry = state.pantry.filter(p => p.id !== id);
+            showToast(`„${item.name}“ bylo spotřebováno a odebráno.`);
+          } else {
+            item.amount = next;
+          }
+          saveState();
+          renderPantry();
+        } else if (action === 'pantry-restock') {
+          const restockAmount = getStepForUnit(item.unit) === 50 ? 250 : 1;
+          addOrMergeShoppingItem(item.name, restockAmount, item.unit);
+          saveState();
+          updateShoppingBadge();
+          showToast(`„${item.name}“ přidáno do nákupu.`);
+        } else if (action === 'pantry-delete') {
+          state.pantry = state.pantry.filter(p => p.id !== id);
+          saveState();
+          renderPantry();
+          showToast(`„${item.name}“ smazáno ze zásob.`);
+        }
+      });
+
+      /* --- ZAVÍRÁNÍ MODÁLŮ A POTVRZOVACÍ DIALOG --- */
+      document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
+      });
+
+      document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop) backdrop.classList.add('hidden');
+        });
+      });
+
+      document.getElementById('confirmCancelBtn').addEventListener('click', () => {
+        closeModal('confirmModal');
+        confirmCallback = null;
+      });
+
+      document.getElementById('confirmOkBtn').addEventListener('click', () => {
+        const cb = confirmCallback;
+        closeModal('confirmModal');
+        confirmCallback = null;
+        if (typeof cb === 'function') cb();
+      });
+
+      // První vykreslení po načtení
+      renderShopping();
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
