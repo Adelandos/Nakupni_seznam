@@ -680,7 +680,7 @@
   </div>
 
   <!-- ==========================================================================
-       MODÁL 5: NASTAVENÍ AI (Bezpečné lokální uložení Gemini API klíče)
+       MODÁL 5: NASTAVENÍ AI (Bezpečné lokální uložení Gemini API klíče + test)
        ========================================================================== -->
   <div id="aiSettingsModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[60] flex items-end sm:items-center justify-center p-3">
     <div class="w-full max-w-[460px] bg-white rounded-3xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto border border-sage-border">
@@ -700,7 +700,7 @@
         <span id="aiKeyStatusText">Zatím není uložen vlastní klíč.</span>
       </div>
 
-      <!-- Formulář zadání API klíče s očkem -->
+      <!-- Formulář zadání API klíče s očkem + testováním -->
       <form id="aiSettingsForm" class="space-y-3 mb-4">
         <div>
           <label for="aiApiKeyInput" class="block text-xs font-semibold text-sage-ink mb-1">Gemini API klíč</label>
@@ -736,12 +736,22 @@
           </button>
           <button
             type="button"
-            id="deleteAiKeyBtn"
-            class="h-11 px-4 rounded-xl bg-white hover:bg-danger-bg text-danger border border-danger-border text-sm font-medium transition"
+            id="testAiKeyBtn"
+            class="h-11 px-3.5 rounded-xl bg-sage-tint hover:bg-sage-soft/40 text-sage-dark border border-sage-border text-xs sm:text-sm font-semibold transition shrink-0"
           >
-            Smazat klíč
+            Otestovat
+          </button>
+          <button
+            type="button"
+            id="deleteAiKeyBtn"
+            class="h-11 px-3.5 rounded-xl bg-white hover:bg-danger-bg text-danger border border-danger-border text-xs sm:text-sm font-medium transition shrink-0"
+          >
+            Smazat
           </button>
         </div>
+
+        <!-- Výsledek rychlého testu klíče -->
+        <div id="aiKeyTestResult" class="hidden text-xs rounded-xl px-3 py-2 border leading-relaxed"></div>
       </form>
 
       <!-- Krátký 3-krokový návod na získání bezplatného klíče -->
@@ -868,10 +878,11 @@
           </div>
         </div>
 
-        <!-- Chybový box -->
+        <!-- Chybový box s přesným detailem pro snadné odhalení problému -->
         <div id="aiErrorBox" class="hidden bg-ochre-bg border border-ochre-border rounded-2xl p-4 space-y-3">
           <div class="text-sm font-semibold text-sage-ink" id="aiErrorTitle">Nepodařilo se spojit s AI</div>
           <p class="text-xs text-sage-muted leading-relaxed" id="aiErrorText"></p>
+          <p id="aiErrorDetail" class="hidden text-[11px] font-mono bg-white/80 text-sage-muted rounded-xl px-2.5 py-2 border border-ochre-border/80 break-words"></p>
           <div class="flex flex-wrap gap-2">
             <button
               type="button"
@@ -1284,14 +1295,14 @@
     /** Vyhodnotí jednu požadovanou surovinu proti domácím zásobám (sčítá všechny sjednocené položky) */
     function evaluateIngredientMatch(req, pantryItems) {
       const reqClean = cleanRawPhrase(req.name);
-      // Vodu z kohoutku nikdy neoznačujeme jako chybějící surovinu na nákup
-      if (reqClean === 'voda' || reqClean === 'vody' || reqClean === 'horka voda' || reqClean === 'tepla voda' || reqClean === 'studena voda') {
+      // Vodu, sůl a pepř neoznačujeme jako chybějící surovinu na nákup
+      if (['voda', 'vody', 'horka voda', 'tepla voda', 'studena voda', 'sul', 'pepr', 'cerny pepr'].includes(reqClean)) {
         return {
           status: 'have',
           matchedItems: [],
-          matchedNames: ['Voda'],
+          matchedNames: [capitalizeFirst(req.name)],
           availableAmount: Number(req.amount) || 1,
-          availableText: 'z kohoutku',
+          availableText: 'základ v kuchyni',
           missingAmount: 0,
           unitIncompatible: false,
           unifiedViaDifferentName: false
@@ -1354,7 +1365,6 @@
             unifiedViaDifferentName
           };
         }
-        // Pokud je kompatibilní část menší, ale existuje ještě zásoba v jiné jednotce, uznáme jako doma k ověření
         if (hasIncompatible) {
           return {
             status: 'have',
@@ -1728,9 +1738,7 @@
         let unit = 'ks';
         let name = line;
 
-        // Vzor 1: "200 g hladké mouky" nebo "2,5 lžíce oleje"
         const mFront = line.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-ZáčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ.]+)?\s+(.+)$/);
-        // Vzor 2: "hladká mouka 200 g"
         const mBack = line.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*([a-zA-ZáčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ.]+)?$/);
 
         if (mFront) {
@@ -1947,7 +1955,7 @@
 
     function addPlanToShopping() {
       const subtractPantry = document.getElementById('planSubtractPantryToggle').checked;
-      const aggregated = new Map(); // key|family -> { name, amount, unit }
+      const aggregated = new Map();
 
       let plannedCount = 0;
       for (let d = 0; d < 7; d++) {
@@ -2636,7 +2644,6 @@
           showToast('V textu nebyly nalezeny žádné suroviny.');
           return;
         }
-        // Smažeme prázdné výchozí řádky, než vložíme rozpoznané
         document.querySelectorAll('#draftIngredientsContainer .draft-ing-row').forEach(row => {
           if (!row.querySelector('.draft-ing-name').value.trim()) row.remove();
         });
@@ -2887,8 +2894,15 @@
       });
 
       /* ======================================================================
-         12. NASTAVENÍ AI A AI KUCHAŘ (GEMINI API + LOKÁLNÍ OVĚŘENÍ ZÁSOB)
+         12. NASTAVENÍ AI A AI KUCHAŘ (AKTUÁLNÍ GEMINI MODELY + AUTO-FALLBACK)
          ====================================================================== */
+      const PREFERRED_GEMINI_MODELS = [
+        'gemini-3.5-flash-lite',
+        'gemini-4-hydrogen',
+        'gemini-3.8-flash',
+        'gemini-2.5-flash-lite'
+      ];
+
       const aiChefState = {
         mode: 'only_home',     // 'only_home' | 'buy_1_2'
         preference: 'Cokoliv',
@@ -2896,7 +2910,8 @@
         results: [],
         savedIndices: new Set(),
         previousTitles: [],
-        isLoading: false
+        isLoading: false,
+        lastWorkingModel: null
       };
 
       function getStoredAiKey() {
@@ -2924,12 +2939,147 @@
         }
       }
 
+      function setKeyTestResult(type, text) {
+        const box = document.getElementById('aiKeyTestResult');
+        box.classList.remove('hidden', 'bg-sage-tint', 'border-sage-soft', 'text-sage-dark', 'bg-ochre-bg', 'border-ochre-border', 'text-ochre', 'bg-danger-bg', 'border-danger-border', 'text-danger');
+        if (type === 'ok') {
+          box.classList.add('bg-sage-tint', 'border-sage-soft', 'text-sage-dark');
+        } else if (type === 'error') {
+          box.classList.add('bg-danger-bg', 'border-danger-border', 'text-danger');
+        } else {
+          box.classList.add('bg-ochre-bg', 'border-ochre-border', 'text-ochre');
+        }
+        box.textContent = text;
+      }
+
       function openAiSettingsModal() {
         const input = document.getElementById('aiApiKeyInput');
         input.value = getStoredAiKey();
         input.type = 'password';
+        document.getElementById('aiKeyTestResult').classList.add('hidden');
         updateAiKeyUI();
         openModal('aiSettingsModal');
+      }
+
+      /** Extrahuje finální text z odpovědi Gemini (přeskočí případné "thought" bloky u thinking modelů) */
+      function extractTextFromGeminiResponse(data) {
+        const parts = data?.candidates?.[0]?.content?.parts || [];
+        const answerPart = parts.find(p => !p.thought && typeof p.text === 'string' && p.text.trim())
+          || parts.find(p => typeof p.text === 'string' && p.text.trim());
+        return answerPart ? answerPart.text : '';
+      }
+
+      /** Bezpečně rozparsuje JSON pole receptů, i kdyby ho model obalil do markdownu */
+      function parseJsonArraySafely(rawText) {
+        const cleaned = String(rawText || '')
+          .replace(/^```(?:json)?\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .trim();
+        try {
+          return JSON.parse(cleaned);
+        } catch {
+          const start = cleaned.indexOf('[');
+          const end = cleaned.lastIndexOf(']');
+          if (start !== -1 && end > start) {
+            return JSON.parse(cleaned.slice(start, end + 1));
+          }
+          throw new Error('Odpověď AI nebyla v platném JSON formátu.');
+        }
+      }
+
+      /** Při selhání výchozích názvů modelů se zeptá Gemini API na aktuálně dostupné modely pro daný klíč */
+      async function discoverAvailableGeminiModels(apiKey) {
+        if (!apiKey) return [];
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+          if (!res.ok) return [];
+          const data = await res.json();
+          const list = Array.isArray(data.models) ? data.models : [];
+          return list
+            .filter(m =>
+              Array.isArray(m.supportedGenerationMethods) &&
+              m.supportedGenerationMethods.includes('generateContent') &&
+              typeof m.name === 'string' &&
+              /gemini/i.test(m.name) &&
+              !/(tts|image|audio|live|embedding|vision|robotics|computer-use)/i.test(m.name)
+            )
+            .map(m => m.name.replace(/^models\//, ''))
+            .sort((a, b) => {
+              const score = (name) => {
+                if (/flash-lite/i.test(name)) return 0;
+                if (/hydrogen/i.test(name)) return 1;
+                if (/flash/i.test(name)) return 2;
+                return 3;
+              };
+              return score(a) - score(b);
+            });
+        } catch {
+          return [];
+        }
+      }
+
+      /** Otestuje zadaný API klíč proti dostupným Gemini modelům */
+      async function testGeminiApiKey(rawKey) {
+        const apiKey = String(rawKey || '').trim();
+        if (!apiKey) {
+          setKeyTestResult('error', 'Nejdřív vlož svůj Gemini API klíč do políčka výše.');
+          return;
+        }
+
+        setKeyTestResult('info', 'Ověřuji klíč proti Gemini API…');
+        const btn = document.getElementById('testAiKeyBtn');
+        btn.disabled = true;
+
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+          if (!res.ok) {
+            let apiMsg = '';
+            try {
+              const j = await res.json();
+              apiMsg = j?.error?.message || '';
+            } catch { /* ignorovat */ }
+            setKeyTestResult('error', `Klíč neprošel (${res.status}): ${apiMsg || 'Zkontroluj, zda je správně zkopírovaný bez mezer.'}`);
+            return;
+          }
+
+          const discovered = await discoverAvailableGeminiModels(apiKey);
+          const candidateModels = [...new Set([...PREFERRED_GEMINI_MODELS, ...discovered])].slice(0, 6);
+
+          let lastErrText = '';
+          for (const model of candidateModels) {
+            const pingRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ role: 'user', parts: [{ text: 'Odpověz jen slovem OK.' }] }]
+                })
+              }
+            );
+
+            if (pingRes.ok) {
+              aiChefState.lastWorkingModel = model;
+              try { localStorage.setItem(AI_KEY_STORAGE, apiKey); } catch { /* ignorovat */ }
+              updateAiKeyUI();
+              setKeyTestResult('ok', `✓ Klíč funguje a je uložený! Připojeno k modelu ${model}.`);
+              return;
+            }
+
+            try {
+              const j = await pingRes.json();
+              lastErrText = `${pingRes.status}: ${j?.error?.message || ''}`;
+            } catch {
+              lastErrText = `Chyba ${pingRes.status}`;
+            }
+          }
+
+          setKeyTestResult('error', `Klíč je platný, ale nepodařilo se spustit model (${lastErrText}).`);
+        } catch (err) {
+          setKeyTestResult('error', `Nepodařilo se spojit s Google API: ${err.message || 'Zkontroluj připojení k internetu.'}`);
+        } finally {
+          btn.disabled = false;
+        }
       }
 
       function updateAiChefHeaderSummary() {
@@ -2993,7 +3143,7 @@
           'Jsi šikovný český domácí kuchař. Navrhuješ praktické, chutné a realistické recepty v přirozené češtině.',
           'Všechny názvy surovin v poli ingredients piš v 1. pádě a pokud se surovina nachází v seznamu doma, použij její srozumitelný český název.',
           'Pro jednotky (unit) používej výhradně standardní české jednotky: g, kg, ml, l, ks, lžíce, lžička, hrst, stroužek, plechovka, balení, hrnek, špetka.',
-          'Vrať čisté JSON pole přesně 3 receptů podle zadaného schématu.'
+          'Vrať VÝHRADNĚ čisté JSON pole přesně 3 objektů receptů s poli: name (string), prepTime (string), servings (number), description (string), ingredients (pole objektů {name, qty, unit}), steps (pole stringů).'
         ].join(' ');
 
         const userPrompt = [
@@ -3006,7 +3156,7 @@
           excludeRule
         ].filter(Boolean).join('\n');
 
-        const payload = {
+        const schemaPayload = {
           systemInstruction: { parts: [{ text: systemInstruction }] },
           contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
           generationConfig: {
@@ -3043,46 +3193,51 @@
           }
         };
 
+        const simpleJsonPayload = {
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json'
+          }
+        };
+
         const storedKey = getStoredAiKey();
         const apiKey = storedKey || '';
 
-        const endpoints = storedKey
-          ? [`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`]
-          : [
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`
-            ];
+        const initialModels = [
+          ...(aiChefState.lastWorkingModel ? [aiChefState.lastWorkingModel] : []),
+          ...PREFERRED_GEMINI_MODELS
+        ];
+        const uniqueModels = [...new Set(initialModels)];
 
-        let lastErr = null;
+        const tryModelList = async (models) => {
+          let lastErr = null;
 
-        for (let epIdx = 0; epIdx < endpoints.length; epIdx++) {
-          const url = endpoints[epIdx];
-          const delays = [1000, 2000, 4000];
+          for (const model of models) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+            const payloadsToTry = [schemaPayload, simpleJsonPayload];
 
-          for (let attempt = 0; attempt <= delays.length; attempt++) {
-            try {
+            for (let pIdx = 0; pIdx < payloadsToTry.length; pIdx++) {
               const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payloadsToTry[pIdx])
               });
 
               if (res.ok) {
                 const data = await res.json();
-                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!text) throw Object.assign(new Error('AI vrátila prázdnou odpověď.'), { code: 'EMPTY' });
-
-                const cleanedJson = text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-                const parsed = JSON.parse(cleanedJson);
-                if (!Array.isArray(parsed) || parsed.length === 0) {
-                  throw Object.assign(new Error('AI nevrátila seznam receptů.'), { code: 'FORMAT' });
+                const text = extractTextFromGeminiResponse(data);
+                if (!text) {
+                  lastErr = Object.assign(new Error('AI vrátila prázdnou odpověď.'), { status: 200, model });
+                  continue;
                 }
+                const parsed = parseJsonArraySafely(text);
+                if (!Array.isArray(parsed) || parsed.length === 0) {
+                  lastErr = Object.assign(new Error('AI nevrátila pole receptů.'), { status: 200, model });
+                  continue;
+                }
+                aiChefState.lastWorkingModel = model;
                 return parsed.slice(0, 3);
-              }
-
-              if ((res.status === 429 || res.status === 503) && attempt < delays.length) {
-                await new Promise(r => setTimeout(r, delays[attempt]));
-                continue;
               }
 
               let apiMsg = '';
@@ -3091,30 +3246,37 @@
                 apiMsg = errJson?.error?.message || '';
               } catch { /* ignorovat */ }
 
+              const isInvalidKey = res.status === 401 || res.status === 403 || /api key not valid|invalid api key|api_key_invalid/i.test(apiMsg);
               lastErr = Object.assign(
                 new Error(apiMsg || `Chyba API (${res.status})`),
-                { status: res.status, isAuth: [400, 401, 403].includes(res.status) }
+                { status: res.status, isAuth: isInvalidKey, model }
               );
 
-              if (epIdx < endpoints.length - 1) break;
-              throw lastErr;
-            } catch (err) {
-              lastErr = err;
-              if (err.isAuth || err.status) {
-                if (epIdx < endpoints.length - 1) break;
-                throw err;
-              }
-              if (attempt < delays.length) {
-                await new Promise(r => setTimeout(r, delays[attempt]));
-                continue;
-              }
-              if (epIdx < endpoints.length - 1) break;
-              throw err;
+              // Neplatný klíč nemá smysl zkoušet na dalších modelech
+              if (isInvalidKey) throw lastErr;
+
+              // Pokud 400 (např. schéma), zkusíme jednodušší payload; jinak přecházíme na další model
+              if (res.status === 400 && pIdx === 0) continue;
+              break;
             }
           }
-        }
 
-        throw lastErr || new Error('Nepodařilo se získat recepty od AI.');
+          throw lastErr || new Error('Nepodařilo se získat recepty od AI.');
+        };
+
+        try {
+          return await tryModelList(uniqueModels);
+        } catch (firstErr) {
+          // Pokud selhaly výchozí modely (např. 404/429) a máme klíč, zkusíme automaticky zjistit dostupné modely
+          if (storedKey && !firstErr.isAuth) {
+            const discovered = await discoverAvailableGeminiModels(storedKey);
+            const fallbackModels = discovered.filter(m => !uniqueModels.includes(m)).slice(0, 4);
+            if (fallbackModels.length > 0) {
+              return await tryModelList(fallbackModels);
+            }
+          }
+          throw firstErr;
+        }
       }
 
       function normalizeAiRecipeForApp(aiRec) {
@@ -3277,12 +3439,14 @@
         const genBtn = document.getElementById('aiGenerateBtn');
         const loadingBox = document.getElementById('aiLoadingBox');
         const errorBox = document.getElementById('aiErrorBox');
+        const errorDetail = document.getElementById('aiErrorDetail');
         const moreBtn = document.getElementById('aiMoreIdeasBtn');
 
         aiChefState.isLoading = true;
         genBtn.disabled = true;
         moreBtn.classList.add('hidden');
         errorBox.classList.add('hidden');
+        errorDetail.classList.add('hidden');
         loadingBox.classList.remove('hidden');
 
         if (!isMoreIdeas) {
@@ -3311,11 +3475,20 @@
           if (err.isAuth || !hasKey) {
             errTitle.textContent = hasKey ? 'API klíč není platný nebo nemá přístup' : 'Pro AI Kuchaře je potřeba Gemini API klíč';
             errText.textContent = hasKey
-              ? 'Zkontroluj prosím svůj Gemini API klíč v Nastavení AI (zda je správně zkopírovaný bez mezer).'
-              : 'Pokud používáš aplikaci na vlastním GitHub Pages, vlož si do Nastavení AI svůj bezplatný klíč z Google AI Studio (zůstane jen v tvém mobilu).';
+              ? 'Zkontroluj prosím svůj Gemini API klíč v Nastavení AI a vyzkoušej tlačítko Otestovat.'
+              : 'Vlož si do Nastavení AI svůj bezplatný klíč z Google AI Studio (zůstane jen v tvém mobilu).';
+          } else if (err.status === 429) {
+            errTitle.textContent = 'Překročen bezplatný limit požadavků';
+            errText.textContent = 'Google na chvilku omezil rychlost bezplatného API. Počkej prosím pár desítek sekund a zkus to znovu.';
           } else {
             errTitle.textContent = 'Nepodařilo se vygenerovat recepty';
-            errText.textContent = 'Zkontroluj připojení k internetu a zkus to prosím za chvilku znovu.';
+            errText.textContent = 'Níže najdeš přesnou zprávu od API, podle které hned poznáme, co se děje:';
+          }
+
+          if (err && err.message) {
+            const prefix = err.status ? `[${err.status}${err.model ? ` / ${err.model}` : ''}] ` : '';
+            errorDetail.textContent = `${prefix}${err.message}`;
+            errorDetail.classList.remove('hidden');
           }
           errorBox.classList.remove('hidden');
         } finally {
@@ -3333,6 +3506,10 @@
       document.getElementById('toggleAiKeyVisibilityBtn').addEventListener('click', () => {
         const input = document.getElementById('aiApiKeyInput');
         input.type = input.type === 'password' ? 'text' : 'password';
+      });
+
+      document.getElementById('testAiKeyBtn').addEventListener('click', () => {
+        testGeminiApiKey(document.getElementById('aiApiKeyInput').value);
       });
 
       document.getElementById('aiSettingsForm').addEventListener('submit', (e) => {
@@ -3356,6 +3533,7 @@
       document.getElementById('deleteAiKeyBtn').addEventListener('click', () => {
         try { localStorage.removeItem(AI_KEY_STORAGE); } catch { /* ignorovat */ }
         document.getElementById('aiApiKeyInput').value = '';
+        document.getElementById('aiKeyTestResult').classList.add('hidden');
         updateAiKeyUI();
         showToast('API klíč byl smazán z prohlížeče.');
       });
