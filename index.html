@@ -4290,7 +4290,7 @@
         if (candidate) return JSON.parse(candidate);
         throw new Error('AI vrátila odpověď v neočekávaném formátu.');
       }
-  
+    }
 
     async function sendGeminiRequest(modelPath, apiKey, promptText, jsonSchema = null, options = {}) {
 
