@@ -4223,9 +4223,9 @@
     function getEffectiveApiKey() {
       const stored = getStoredGeminiKey();
       if (stored) return { key: stored, source: 'stored' };
-      if (isInsidePreviewIframe()) return { key: '', source: 'preview' };
       return { key: '', source: 'missing' };
     }
+
 
     function updateAiKeyUI() {
       const key = getStoredGeminiKey();
@@ -4290,101 +4290,285 @@
         if (candidate) return JSON.parse(candidate);
         throw new Error('AI vrátila odpověď v neočekávaném formátu.');
       }
-    }
+  
 
-    async function sendGeminiRequest(modelPath, apiKey, promptText, jsonSchema = null) {
+    async function sendGeminiRequest(modelPath, apiKey, promptText, jsonSchema = null, options = {}) {
+
       const cleanPath = modelPath.startsWith('models/') ? modelPath : `models/${modelPath}`;
+
       const url = `https://generativelanguage.googleapis.com/v1beta/${cleanPath}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
       const payload = {
+
         contents: [{ role: 'user', parts: [{ text: promptText }] }]
+
       };
+
+
+
+      const genConfig = {};
+
       if (jsonSchema) {
-        payload.generationConfig = {
-          responseMimeType: 'application/json',
-          responseSchema: jsonSchema
-        };
+
+        genConfig.responseMimeType = 'application/json';
+
+        genConfig.responseSchema = jsonSchema;
+
       }
 
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
 
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        const msg = data?.error?.message || `HTTP ${resp.status}`;
-        const err = new Error(msg);
-        err.status = resp.status;
+
+      // Gemini 3 má výchozí thinkingLevel = "high" (pomalé pro recepty) -> zrychlíme na "minimal"
+
+      if (options.useThinkingConfig !== false) {
+
+        if (/gemini-3/i.test(cleanPath)) {
+
+          genConfig.thinkingConfig = { thinkingLevel: 'minimal' };
+
+        } else if (/gemini-2\.5-flash(?!-lite)/i.test(cleanPath)) {
+
+          genConfig.thinkingConfig = { thinkingBudget: 0 };
+
+        }
+
+      }
+
+
+
+      if (Object.keys(genConfig).length > 0) {
+
+        payload.generationConfig = genConfig;
+
+      }
+
+
+
+      const controller = new AbortController();
+
+      const timeoutMs = options.timeoutMs || 22000;
+
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+
+
+      try {
+
+        const resp = await fetch(url, {
+
+          method: 'POST',
+
+          headers: { 'Content-Type': 'application/json' },
+
+          body: JSON.stringify(payload),
+
+          signal: controller.signal
+
+        });
+
+
+
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok) {
+
+          const msg = data?.error?.message || `HTTP ${resp.status}`;
+
+          const err = new Error(msg);
+
+          err.status = resp.status;
+
+          throw err;
+
+        }
+
+
+
+        const text = extractTextFromGeminiPayload(data);
+
+        if (!text) {
+
+          throw new Error('Model vrátil prázdnou odpověď.');
+
+        }
+
+        return text;
+
+      } catch (err) {
+
+        if (err && err.name === 'AbortError') {
+
+          const tErr = new Error(`Model ${cleanPath} neodpověděl včas (${Math.round(timeoutMs / 1000)} s).`);
+
+          tErr.isTimeout = true;
+
+          throw tErr;
+
+        }
+
         throw err;
+
+      } finally {
+
+        clearTimeout(timer);
+
       }
 
-      const text = extractTextFromGeminiPayload(data);
-      if (!text) {
-        throw new Error('Model vrátil prázdnou odpověď.');
-      }
-      return text;
     }
+
+
 
     async function callGeminiWithFallback(apiKey, promptText, jsonSchema = null) {
+
+      if (!apiKey) {
+
+        throw new Error('Chybí Gemini API klíč – vlož ho v nastavení AI (✨ vpravo nahoře).');
+
+      }
+
+
+
       const candidateModels = [
+
         'gemini-3-flash-preview',
+
         'gemini-2.5-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-2.0-flash'
+
+        'gemini-2.5-flash-lite'
+
       ];
+
+
 
       let lastErr = null;
 
+
+
       for (const model of candidateModels) {
+
         try {
-          return await sendGeminiRequest(model, apiKey, promptText, jsonSchema);
+
+          return await sendGeminiRequest(model, apiKey, promptText, jsonSchema, { timeoutMs: 22000 });
+
         } catch (err) {
+
           lastErr = err;
+
           const msg = String(err?.message || '');
-          if (/api key not valid|api_key_invalid/i.test(msg)) {
-            throw new Error('Neplatný API klíč – zkontroluj, že jsi ho zkopírovala celý bez mezer.');
+
+          if (
+
+            err?.status === 401 ||
+
+            err?.status === 403 ||
+
+            /api key not valid|api_key_invalid|missing a valid api key|unregistered callers/i.test(msg)
+
+          ) {
+
+            throw new Error('Neplatný nebo chybějící API klíč – zkontroluj ho v nastavení AI (✨).');
+
           }
-          if (jsonSchema && err?.status === 400 && /schema|responsemimetype|json/i.test(msg)) {
+
+          // Pokud model odmítne thinkingConfig nebo responseSchema (HTTP 400), zkusíme ho hned bez nich
+
+          if (err?.status === 400 && /thinking|schema|responsemimetype|json|unknown name/i.test(msg)) {
+
             try {
-              return await sendGeminiRequest(model, apiKey, promptText, null);
+
+              return await sendGeminiRequest(model, apiKey, promptText, null, { useThinkingConfig: false, timeoutMs: 20000 });
+
             } catch (err2) {
+
               lastErr = err2;
+
             }
+
           }
+
         }
+
       }
+
+
+
+      // Záložní automatické zjištění dostupného textového Flash modelu z účtu (s limitem 10 s)
+
+      const listCtrl = new AbortController();
+
+      const listTimer = setTimeout(() => listCtrl.abort(), 10000);
 
       try {
-        const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+
+        const listResp = await fetch(
+
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+
+          { signal: listCtrl.signal }
+
+        );
+
         const listData = await listResp.json().catch(() => ({}));
-        const excluded = /(embedding|imagen|veo|tts|audio|image|aqa|bisect|robotics|computer-use)/i;
+
+        const excluded = /(embedding|imagen|veo|tts|audio|image|aqa|bisect|robotics|computer-use|live|transcribe|translate|deep-research)/i;
+
         const textModels = (listData?.models || [])
+
           .filter(m =>
+
             Array.isArray(m.supportedGenerationMethods) &&
+
             m.supportedGenerationMethods.includes('generateContent') &&
+
             /gemini/i.test(m.name || '') &&
+
             !excluded.test(m.name || '')
+
           )
+
           .sort((a, b) => {
+
             const aFlash = /flash/i.test(a.name) ? 0 : 1;
+
             const bFlash = /flash/i.test(b.name) ? 0 : 1;
+
             return aFlash - bFlash;
+
           });
 
+
+
         for (const m of textModels.slice(0, 2)) {
+
           try {
-            return await sendGeminiRequest(m.name, apiKey, promptText, null);
+
+            return await sendGeminiRequest(m.name, apiKey, promptText, null, { useThinkingConfig: false, timeoutMs: 20000 });
+
           } catch (err) {
+
             lastErr = err;
+
           }
+
         }
+
       } catch (err) {
+
         lastErr = err;
+
+      } finally {
+
+        clearTimeout(listTimer);
+
       }
 
+
+
       throw lastErr || new Error('Nepodařilo se získat odpověď z Gemini API.');
+
     }
+
+
 
     async function testStoredGeminiKey() {
       const inputVal = (document.getElementById('aiApiKeyInput').value || '').replace(/\s+/g, '').trim();
