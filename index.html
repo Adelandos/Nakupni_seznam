@@ -251,7 +251,7 @@
       </section>
 
       <!-- ======================================================================
-           ZÁLOŽKA 2: TÝDENNÍ PLÁNOVAČ JÍDLA (Po–Ne)
+           ZÁLOŽKA 2: TÝDENNÍ PLÁNOVAČ JÍDLA (Automaticky posouvaný od dneška)
            ====================================================================== -->
       <section id="tab-plan" class="tab-panel hidden tab-fade">
         <!-- Ovládací karta: přepínač odečtu zásob + hromadný přenos do nákupu -->
@@ -289,7 +289,7 @@
           </div>
         </div>
 
-        <!-- Karty jednotlivých dnů v týdnu -->
+        <!-- Karty jednotlivých dnů v týdnu (od dneška vpřed) -->
         <div id="planDaysList" class="space-y-2.5"></div>
       </section>
 
@@ -3040,9 +3040,8 @@
       updateShoppingBadge();
     }
 
-    /* --- ZÁLOŽKA 2: PLÁN --- */
+    /* --- ZÁLOŽKA 2: PLÁN (Automatické posouvání podle aktuálního dne) --- */
     function getTodayDayIndex() {
-      // Převede JS getDay() (0 = Ne, 1 = Po, ..., 6 = So) na naše indexy (0 = Po, ..., 6 = Ne)
       return (new Date().getDay() + 6) % 7;
     }
 
@@ -3075,7 +3074,77 @@
         const entriesHtml = entries.map(entry => {
           // Položka z uvařených zásob (suroviny se už nekupují)
           if (entry.cookedBatchName) {
-// ... existing code ... -->
+            const perServ = entry.perServingNutrients || calculateIngredientNutrients(entry.cookedBatchName, 250, 'g');
+            return `
+              <div class="flex items-center justify-between gap-2 bg-sage-tint/70 border border-sage-soft rounded-xl px-3 py-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs font-semibold text-sage-ink truncate">🍲 ${escapeHtml(entry.cookedBatchName)}</span>
+                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white text-sage-dark border border-sage-border">ze zásob</span>
+                  </div>
+                  ${nutrOn ? `<span class="block text-[11px] text-sage-muted mt-0.5">cca ${formatInt(perServ.kcal)} kcal • ${formatAmount(perServ.protein)} g B</span>` : ''}
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    data-action="eat-plan-entry"
+                    data-day="${dayIdx}"
+                    data-entry-id="${escapeHtml(entry.id)}"
+                    class="px-2.5 py-1 rounded-lg bg-white hover:bg-sage text-sage-dark hover:text-white border border-sage-border text-[11px] font-semibold transition"
+                  >
+                    ✓ Snědeno
+                  </button>
+                  <button
+                    type="button"
+                    data-action="remove-plan-entry"
+                    data-day="${dayIdx}"
+                    data-entry-id="${escapeHtml(entry.id)}"
+                    aria-label="Odebrat z plánu"
+                    class="w-7 h-7 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center transition"
+                  >✕</button>
+                </div>
+              </div>
+            `;
+          }
+
+          // Klasický recept v plánu
+          const recipe = state.recipes.find(r => r.id === entry.recipeId);
+          if (!recipe) return '';
+          const perServ = calculateRecipeNutrientsPerServing(recipe);
+          const batchBadge = entry.batchLabel
+            ? `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-sage-tint text-sage-dark">porce ${escapeHtml(entry.batchLabel)}</span>`
+            : '';
+
+          return `
+            <div class="flex items-center justify-between gap-2 bg-sage-bg border border-sage-border rounded-xl px-3 py-2">
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs font-semibold text-sage-ink truncate">${escapeHtml(recipe.name)}</span>
+                  ${batchBadge}
+                </div>
+                ${nutrOn ? `<span class="block text-[11px] text-sage-muted mt-0.5">${formatInt(perServ.kcal)} kcal • ${formatAmount(perServ.protein)} g B / porce</span>` : ''}
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  data-action="eat-plan-entry"
+                  data-day="${dayIdx}"
+                  data-entry-id="${escapeHtml(entry.id)}"
+                  class="px-2.5 py-1 rounded-lg bg-white hover:bg-sage text-sage-dark hover:text-white border border-sage-border text-[11px] font-semibold transition"
+                >
+                  ✓ Snědeno
+                </button>
+                <button
+                  type="button"
+                  data-action="remove-plan-entry"
+                  data-day="${dayIdx}"
+                  data-entry-id="${escapeHtml(entry.id)}"
+                  aria-label="Odebrat z plánu"
+                  class="w-7 h-7 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center transition"
+                >✕</button>
+              </div>
+            </div>
+          `;
         }).filter(Boolean).join('');
 
         const isToday = offset === 0;
@@ -3110,7 +3179,159 @@
     }
 
     function addPlanToShopping() {
-// ... existing code ... -->
+      const subtractPantry = document.getElementById('planSubtractPantryToggle').checked;
+      const countedBatchGroups = new Set();
+      const neededMap = new Map();
+
+      for (let d = 0; d < 7; d++) {
+        for (const entry of (state.plan[d] || [])) {
+          // Položky z uvařených zásob se už nekupují
+          if (entry.cookedBatchName) continue;
+
+          // Vícedenní vaření (batchGroupId) započítá suroviny jen jednou
+          if (entry.batchGroupId) {
+            if (countedBatchGroups.has(entry.batchGroupId)) continue;
+            countedBatchGroups.add(entry.batchGroupId);
+          }
+
+          const recipe = state.recipes.find(r => r.id === entry.recipeId);
+          if (!recipe) continue;
+
+          for (const ing of (recipe.ingredients || [])) {
+            if (isKitchenStapleOrSpice(ing.name)) continue;
+
+            const key = getCanonicalKey(ing.name);
+            const fam = getUnitInfo(ing.unit).family;
+            const bucketKey = `${key}|${fam}`;
+
+            if (!neededMap.has(bucketKey)) {
+              neededMap.set(bucketKey, {
+                name: ing.name,
+                amount: Number(ing.amount) || 0,
+                unit: ing.unit
+              });
+            } else {
+              const bucket = neededMap.get(bucketKey);
+              const conv = convertAmount(Number(ing.amount) || 0, ing.unit, bucket.unit);
+              if (conv !== null) {
+                bucket.amount = Math.round((bucket.amount + conv) * 100) / 100;
+              }
+            }
+          }
+        }
+      }
+
+      if (neededMap.size === 0) {
+        showToast('V týdenním plánu nejsou žádné recepty k nákupu.');
+        return;
+      }
+
+      let addedItemsCount = 0;
+
+      neededMap.forEach(item => {
+        let toBuyAmount = item.amount;
+
+        if (subtractPantry) {
+          const match = evaluateIngredientMatch(item, state.pantry);
+          if (match.status === 'have') {
+            toBuyAmount = 0;
+          } else if (match.status === 'partial') {
+            toBuyAmount = match.missingAmount;
+          }
+        }
+
+        if (toBuyAmount > 0) {
+          addOrMergeShoppingItem(item.name, toBuyAmount, item.unit);
+          addedItemsCount++;
+        }
+      });
+
+      saveState();
+      updateShoppingBadge();
+
+      if (addedItemsCount > 0) {
+        showToast(`Do nákupu přidáno ${addedItemsCount} položek z plánu.`);
+        switchTab('shopping');
+      } else {
+        showToast('Všechny suroviny z plánu už máš doma!');
+      }
+    }
+
+    function renderPlanPickerList() {
+      const q = cleanRawPhrase(document.getElementById('planPickerSearch').value);
+      const nutrOn = isNutritionEnabled();
+      const listEl = document.getElementById('planPickerList');
+
+      const matchingBatches = (state.cookedBatches || []).filter(b =>
+        Number(b.portions) > 0 && (!q || cleanRawPhrase(b.name).includes(q))
+      );
+
+      const matchingRecipes = state.recipes.filter(r =>
+        !q || cleanRawPhrase(r.name).includes(q)
+      );
+
+      let html = '';
+
+      if (matchingBatches.length > 0) {
+        html += `<div class="text-[11px] font-bold uppercase tracking-wider text-sage-dark px-1 pt-0.5">🍲 Z uvařených zásob doma (nekupuje se)</div>`;
+        html += matchingBatches.map(b => `
+          <button
+            type="button"
+            data-pick-batch="${escapeHtml(b.id)}"
+            class="w-full text-left p-3 rounded-2xl bg-sage-tint/60 hover:bg-sage-tint border border-sage-soft transition flex items-center justify-between gap-2"
+          >
+            <div class="min-w-0">
+              <div class="text-sm font-semibold text-sage-ink truncate">🍲 ${escapeHtml(b.name)}</div>
+              <div class="text-xs text-sage-muted mt-0.5">Zbývá ${formatAmount(b.portions)} porcí doma</div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full bg-white text-sage-dark text-xs font-semibold shrink-0">+ Vybrat</span>
+          </button>
+        `).join('');
+      }
+
+      if (matchingRecipes.length > 0) {
+        html += `<div class="text-[11px] font-bold uppercase tracking-wider text-sage-muted px-1 pt-2">📖 Z uložených receptů</div>`;
+        html += matchingRecipes.map(r => {
+          const ev = evaluateRecipe(r);
+          const perServ = calculateRecipeNutrientsPerServing(r);
+          return `
+            <button
+              type="button"
+              data-pick-recipe="${escapeHtml(r.id)}"
+              class="w-full text-left p-3 rounded-2xl bg-sage-bg hover:bg-sage-tint/70 border border-sage-border transition flex items-center justify-between gap-2"
+            >
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-sage-ink truncate">${escapeHtml(r.name)}</div>
+                <div class="text-xs text-sage-muted mt-0.5">
+                  ${ev.haveCount}/${ev.totalCount} surovin doma${nutrOn ? ` • ${formatInt(perServ.kcal)} kcal` : ''}
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full ${ev.canCook ? 'bg-sage text-white' : 'bg-white text-sage-dark border border-sage-border'} text-xs font-semibold shrink-0">
+                + Plán
+              </span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      if (!html) {
+        html = `<p class="text-xs text-sage-muted text-center py-6">Žádný recept ani hotové jídlo neodpovídá hledání.</p>`;
+      }
+
+      listEl.innerHTML = html;
+    }
+
+    function syncPlanPickerSpanUI() {
+      document.querySelectorAll('.plan-span-btn').forEach(btn => {
+        const isSelected = Number(btn.dataset.planSpan) === planPickerSpanDays;
+        btn.className = `plan-span-btn px-2.5 py-1 rounded-lg text-xs transition ${
+          isSelected
+            ? 'bg-sage text-white font-semibold shadow-sm'
+            : 'bg-white border border-sage-border text-sage-ink font-medium'
+        }`;
+      });
+    }
+
     function openPlanPickerModal(dayIdx) {
       pickingPlanDay = dayIdx;
       planPickerSpanDays = 1;
@@ -3122,10 +3343,1448 @@
       openModal('planPickerModal');
     }
 
+    /* --- ZÁLOŽKA 3: RECEPTY (S živým sjednocováním + výměnou surovin ⇄) --- */
+    function renderRecipes() {
+      const nutrOn = isNutritionEnabled();
+      const query = cleanRawPhrase(document.getElementById('recipeSearchInput').value);
+
+      const filtered = state.recipes.filter(r => {
+        const ev = evaluateRecipe(r);
+        if (recipeFilter === 'cookable' && !ev.canCook) return false;
+        if (!query) return true;
+        const inTitle = cleanRawPhrase(r.name).includes(query);
+        const inIngs = (r.ingredients || []).some(i => cleanRawPhrase(i.name).includes(query));
+        return inTitle || inIngs;
+      });
+
+      const listEl = document.getElementById('recipesList');
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 border border-sage-border text-center">
+            <h3 class="text-sm font-bold text-sage-ink">Žádné recepty k zobrazení</h3>
+            <p class="text-xs text-sage-muted mt-1 leading-relaxed">
+              Zkus změnit filtr, vymazat hledání nebo si nech vymyslet nové recepty přes AI Kuchaře.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(recipe => {
+        const ev = evaluateRecipe(recipe);
+        const isOpen = openRecipeIds.has(recipe.id);
+        const perServ = calculateRecipeNutrientsPerServing(recipe);
+        const missingCount = ev.details.filter(d => d.match.status !== 'have').length;
+
+        const ingredientsHtml = ev.details.map(({ ing, match }, idx) => {
+          const swapKey = `rec:${recipe.id}:${idx}`;
+          const isSwapping = activeSwapTarget === swapKey;
+
+          let statusBadge = '';
+          if (match.status === 'have') {
+            const label = match.unifiedViaDifferentName
+              ? `✓ Doma jako: ${escapeHtml(match.matchedNames.join(', '))} (${escapeHtml(match.availableText)})`
+              : `✓ Doma: ${escapeHtml(match.availableText)}`;
+            statusBadge = `<span class="text-[11px] font-medium text-sage-dark">${label}</span>`;
+          } else if (match.status === 'partial') {
+            statusBadge = `<span class="text-[11px] font-medium text-ochre">◐ Doma jen ${escapeHtml(match.availableText)} (chybí ${formatAmount(match.missingAmount)} ${escapeHtml(ing.unit)})</span>`;
+          } else {
+            statusBadge = `<span class="text-[11px] font-medium text-danger">✕ Chybí doma</span>`;
+          }
+
+          const swapBoxHtml = isSwapping ? `
+            <div class="mt-2 pt-2 border-t border-sage-border/80 flex items-center gap-1.5">
+              <input
+                type="text"
+                data-swap-input="${swapKey}"
+                value="${escapeHtml(ing.name)}"
+                placeholder="Nová surovina (např. Cuketa)..."
+                autocomplete="off"
+                class="flex-1 min-w-0 h-9 px-2.5 rounded-xl bg-white border border-sage text-xs text-sage-ink focus:outline-none"
+              >
+              <button
+                type="button"
+                data-action="apply-swap"
+                data-recipe-id="${escapeHtml(recipe.id)}"
+                data-ing-idx="${idx}"
+                class="h-9 px-3 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs font-semibold shrink-0"
+              >
+                Vyměnit
+              </button>
+              <button
+                type="button"
+                data-action="cancel-swap"
+                class="w-8 h-9 rounded-xl bg-white border border-sage-border text-sage-muted text-xs shrink-0"
+              >✕</button>
+            </div>
+          ` : '';
+
+          return `
+            <li class="bg-sage-bg rounded-xl px-3 py-2 border border-sage-border/80">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="text-xs sm:text-sm font-semibold text-sage-ink">
+                    ${escapeHtml(ing.name)} <span class="font-normal text-sage-muted">(${formatAmount(ing.amount)} ${escapeHtml(ing.unit)})</span>
+                  </div>
+                  <div class="mt-0.5">${statusBadge}</div>
+                </div>
+                <button
+                  type="button"
+                  data-action="open-swap"
+                  data-swap-key="${swapKey}"
+                  title="Vyměnit surovinu (např. mrkev za cuketu)"
+                  class="px-2 py-1 rounded-lg bg-white hover:bg-sage-tint border border-sage-border text-[11px] font-semibold text-sage-dark shrink-0 transition"
+                >
+                  ⇄
+                </button>
+              </div>
+              ${swapBoxHtml}
+            </li>
+          `;
+        }).join('');
+
+        const stepsHtml = Array.isArray(recipe.steps) && recipe.steps.length > 0
+          ? `
+            <div class="mt-3 pt-3 border-t border-sage-border/80">
+              <div class="text-xs font-bold text-sage-ink mb-1.5">Postup přípravy</div>
+              <ol class="space-y-1.5 text-xs text-sage-ink list-decimal list-inside leading-relaxed">
+                ${recipe.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+              </ol>
+            </div>
+          `
+          : '';
+
+        return `
+          <article class="bg-white rounded-2xl border ${ev.canCook ? 'border-sage-soft' : 'border-sage-border'} shadow-sm overflow-hidden">
+            <button
+              type="button"
+              data-action="toggle-recipe"
+              data-id="${escapeHtml(recipe.id)}"
+              class="w-full p-4 text-left flex items-start justify-between gap-3 hover:bg-sage-bg/50 transition"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h3 class="text-sm sm:text-base font-bold text-sage-ink">${escapeHtml(recipe.name)}</h3>
+                </div>
+                ${recipe.note ? `<p class="text-xs text-sage-muted mt-0.5 line-clamp-2">${escapeHtml(recipe.note)}</p>` : ''}
+                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                    ev.canCook ? 'bg-sage-tint text-sage-dark' : 'bg-ochre-bg text-ochre border border-ochre-border'
+                  }">
+                    ${ev.canCook ? '✓ Máš vše doma' : `${ev.haveCount} / ${ev.totalCount} surovin doma`}
+                  </span>
+                  ${recipe.prepTime ? `<span class="px-2 py-0.5 rounded-full bg-sage-bg text-sage-muted text-[11px]">⏱ ${escapeHtml(recipe.prepTime)}</span>` : ''}
+                  ${recipe.servings ? `<span class="px-2 py-0.5 rounded-full bg-sage-bg text-sage-muted text-[11px]">🍽 ${escapeHtml(recipe.servings)} porce</span>` : ''}
+                  ${nutrOn ? `<span class="px-2 py-0.5 rounded-full bg-sage-bg text-sage-dark text-[11px] font-medium">${formatInt(perServ.kcal)} kcal • ${formatAmount(perServ.protein)} g B</span>` : ''}
+                </div>
+              </div>
+              <svg class="w-5 h-5 text-sage-muted shrink-0 mt-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            ${isOpen ? `
+              <div class="px-4 pb-4 pt-1 border-t border-sage-border/70">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-sage-ink">Suroviny (klepni ⇄ pro výměnu)</span>
+                </div>
+                <ul class="space-y-1.5">${ingredientsHtml}</ul>
+                ${stepsHtml}
+
+                <div class="mt-3.5 pt-3 border-t border-sage-border/80 flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    data-action="quick-eat-recipe"
+                    data-id="${escapeHtml(recipe.id)}"
+                    class="px-3 py-2 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs font-semibold shadow-sm transition"
+                  >
+                    ✓ Snědeno
+                  </button>
+                  <button
+                    type="button"
+                    data-action="cook-batch-recipe"
+                    data-id="${escapeHtml(recipe.id)}"
+                    class="px-3 py-2 rounded-xl bg-sage-tint hover:bg-sage text-sage-dark hover:text-white text-xs font-semibold transition"
+                  >
+                    🍲 Uvařit do zásoby
+                  </button>
+                  ${missingCount > 0 ? `
+                    <button
+                      type="button"
+                      data-action="add-missing-recipe"
+                      data-id="${escapeHtml(recipe.id)}"
+                      class="px-3 py-2 rounded-xl bg-ochre-bg hover:bg-ochre/20 text-ochre border border-ochre-border text-xs font-semibold transition"
+                    >
+                      + Chybějící do nákupu (${missingCount})
+                    </button>
+                  ` : ''}
+                  <button
+                    type="button"
+                    data-action="edit-recipe"
+                    data-id="${escapeHtml(recipe.id)}"
+                    class="px-3 py-2 rounded-xl bg-sage-bg hover:bg-sage-tint text-sage-ink border border-sage-border text-xs font-medium transition"
+                  >
+                    Upravit
+                  </button>
+                  <button
+                    type="button"
+                    data-action="delete-recipe"
+                    data-id="${escapeHtml(recipe.id)}"
+                    class="px-3 py-2 rounded-xl bg-white hover:bg-danger-bg text-danger border border-danger-border text-xs font-medium transition"
+                  >
+                    Smazat
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+          </article>
+        `;
+      }).join('');
+
+      if (activeSwapTarget && activeSwapTarget.startsWith('rec:')) {
+        const inp = document.querySelector(`[data-swap-input="${activeSwapTarget}"]`);
+        if (inp) {
+          attachAutocomplete(inp, (picked) => {
+            inp.value = picked.name;
+            closeAutocomplete();
+          });
+          inp.focus();
+          inp.select();
+        }
+      }
+    }
+
+    /* --- ZÁLOŽKA 4: DOMA --- */
+    function renderCookedBatches() {
+      const container = document.getElementById('cookedBatchesList');
+      const nutrOn = isNutritionEnabled();
+      const batches = (state.cookedBatches || []).filter(b => Number(b.portions) > 0);
+
+      if (batches.length === 0) {
+        container.innerHTML = `<p class="text-xs text-sage-muted italic">Zatím nemáš uložené žádné hotové porce. Přidej je tlačítkem „+ Dávka“ nebo z receptu přes „🍲 Uvařit do zásoby“.</p>`;
+        return;
+      }
+
+      container.innerHTML = batches.map(b => {
+        const perServ = b.perServingNutrients || calculateIngredientNutrients(b.name, 250, 'g');
+        return `
+          <div class="bg-sage-bg rounded-xl px-3 py-2.5 border border-sage-border flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-xs sm:text-sm font-bold text-sage-ink truncate">${escapeHtml(b.name)}</div>
+              <div class="text-[11px] text-sage-muted mt-0.5">
+                Zbývá <strong class="text-sage-dark">${formatAmount(b.portions)} porcí</strong>${nutrOn ? ` • cca ${formatInt(perServ.kcal)} kcal / porce` : ''}
+              </div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                data-batch-action="eat-one"
+                data-batch-id="${escapeHtml(b.id)}"
+                title="Odečíst 1 snědenou porci"
+                class="px-2.5 py-1.5 rounded-lg bg-sage hover:bg-sage-dark text-white text-[11px] font-semibold transition"
+              >
+                −1 (Sníst)
+              </button>
+              <button
+                type="button"
+                data-batch-action="plus-one"
+                data-batch-id="${escapeHtml(b.id)}"
+                aria-label="Přidat 1 porci"
+                class="w-7 h-7 rounded-lg bg-white border border-sage-border text-sage-dark font-bold text-xs hover:bg-sage-tint transition"
+              >+</button>
+              <button
+                type="button"
+                data-batch-action="delete"
+                data-batch-id="${escapeHtml(b.id)}"
+                aria-label="Smazat dávku"
+                class="w-7 h-7 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg text-xs flex items-center justify-center transition"
+              >✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderPantry() {
+      renderCookedBatches();
+
+      const badge = document.getElementById('unificationCountBadge');
+      if (badge) badge.textContent = `${state.unificationGroups.length} skupin`;
+
+      const query = cleanRawPhrase(document.getElementById('pantrySearchInput').value);
+      const filtered = state.pantry.filter(item => {
+        if (pantryLocationFilter !== 'all' && item.location !== pantryLocationFilter) return false;
+        if (query && !cleanRawPhrase(item.name).includes(query)) return false;
+        return true;
+      });
+
+      const listEl = document.getElementById('pantryList');
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 border border-sage-border text-center">
+            <h3 class="text-sm font-bold text-sage-ink">Žádné suroviny v tomto výběru</h3>
+            <p class="text-xs text-sage-muted mt-1 leading-relaxed">
+              Přidej surovinu výše nebo přesuň koupené položky z Nákupu.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(item => `
+        <div class="bg-white rounded-2xl px-3.5 py-3 border border-sage-border shadow-sm flex items-center justify-between gap-2.5">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-sm font-semibold text-sage-ink truncate">${escapeHtml(item.name)}</span>
+              <span class="px-2 py-0.5 rounded-full bg-sage-tint text-sage-dark text-[10px] font-semibold">
+                ${escapeHtml(LOCATION_LABELS[item.location] || 'Lednice')}
+              </span>
+            </div>
+            <div class="text-xs text-sage-muted mt-0.5">${formatAmount(item.amount)} ${escapeHtml(item.unit)}</div>
+          </div>
+
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              data-pantry-action="dec"
+              data-id="${escapeHtml(item.id)}"
+              aria-label="Snížit množství"
+              class="w-8 h-8 rounded-xl bg-sage-bg hover:bg-sage-tint border border-sage-border text-sage-dark font-bold text-sm transition"
+            >−</button>
+            <button
+              type="button"
+              data-pantry-action="inc"
+              data-id="${escapeHtml(item.id)}"
+              aria-label="Zvýšit množství"
+              class="w-8 h-8 rounded-xl bg-sage-bg hover:bg-sage-tint border border-sage-border text-sage-dark font-bold text-sm transition"
+            >+</button>
+            <button
+              type="button"
+              data-pantry-action="delete"
+              data-id="${escapeHtml(item.id)}"
+              aria-label="Smazat surovinu"
+              class="w-8 h-8 rounded-xl text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center transition"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderQuickStaples() {
+      const grid = document.getElementById('quickStaplesGrid');
+      grid.innerHTML = QUICK_STAPLES.map((st, idx) => `
+        <button
+          type="button"
+          data-quick-staple="${idx}"
+          class="px-2.5 py-1.5 rounded-full bg-sage-bg hover:bg-sage-tint border border-sage-border text-xs font-medium text-sage-ink active:scale-95 transition"
+        >
+          + ${escapeHtml(st.name)} <span class="text-sage-muted">(${formatAmount(st.amount)} ${escapeHtml(st.unit)})</span>
+        </button>
+      `).join('');
+    }
+
     /* ==========================================================================
-       12. VYKRESLOVÁNÍ VÝŽIVOVÉHO PŘEHLEDU, PROFILU CÍLŮ, „SNĚDENO“ A „DO ZÁSOBY“
+       12. MODÁL RECEPTU A SJEDNOCENÍ SUROVIN
        ========================================================================== */
-// ... existing code ... -->
+    function addDraftIngredientRow(ing = { name: '', amount: 1, unit: 'g' }) {
+      const container = document.getElementById('draftIngredientsContainer');
+      const row = document.createElement('div');
+      row.className = 'draft-ing-row flex gap-1.5 items-center';
+
+      const unitsHtml = UNITS.map(u =>
+        `<option value="${escapeHtml(u)}" ${u === ing.unit ? 'selected' : ''}>${escapeHtml(u)}</option>`
+      ).join('');
+
+      row.innerHTML = `
+        <input
+          type="text"
+          class="draft-ing-name flex-1 min-w-0 h-10 px-3 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage"
+          placeholder="Surovina..."
+          autocomplete="off"
+          value="${escapeHtml(ing.name || '')}"
+        >
+        <input
+          type="number"
+          step="any"
+          min="0.01"
+          class="draft-ing-amount w-20 h-10 px-2.5 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage"
+          value="${Number(ing.amount) || 1}"
+        >
+        <select class="draft-ing-unit w-24 h-10 px-2 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage">
+          ${unitsHtml}
+        </select>
+        <button type="button" class="remove-draft-ing w-8 h-10 rounded-xl text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center shrink-0">✕</button>
+      `;
+
+      const nameInput = row.querySelector('.draft-ing-name');
+      const unitSelect = row.querySelector('.draft-ing-unit');
+      attachAutocomplete(nameInput, (picked) => {
+        nameInput.value = picked.name;
+        if (picked.unit && UNITS.includes(picked.unit)) unitSelect.value = picked.unit;
+        closeAutocomplete();
+      });
+
+      row.querySelector('.remove-draft-ing').addEventListener('click', () => {
+        if (container.children.length > 1) {
+          row.remove();
+        } else {
+          nameInput.value = '';
+        }
+      });
+
+      container.appendChild(row);
+    }
+
+    function openRecipeModal(recipe = null) {
+      editingRecipeId = recipe ? recipe.id : null;
+      document.getElementById('recipeModalTitle').textContent = recipe ? 'Upravit recept' : 'Nový recept';
+      document.getElementById('recipeNameInput').value = recipe?.name || '';
+      document.getElementById('recipeNoteInput').value = recipe?.note || '';
+      document.getElementById('recipePrepTimeInput').value = recipe?.prepTime || '';
+      document.getElementById('recipeServingsInput').value = recipe?.servings || 2;
+      document.getElementById('recipeStepsInput').value = Array.isArray(recipe?.steps) ? recipe.steps.join('\n') : '';
+      document.getElementById('bulkPasteBox').classList.add('hidden');
+      document.getElementById('bulkPasteTextarea').value = '';
+
+      const container = document.getElementById('draftIngredientsContainer');
+      container.innerHTML = '';
+      if (recipe && Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0) {
+        recipe.ingredients.forEach(ing => addDraftIngredientRow(ing));
+      } else {
+        addDraftIngredientRow({ name: '', amount: 200, unit: 'g' });
+        addDraftIngredientRow({ name: '', amount: 1, unit: 'ks' });
+      }
+
+      openModal('recipeFormModal');
+    }
+
+    function renderUnificationGroups() {
+      const listEl = document.getElementById('unificationGroupsList');
+      listEl.innerHTML = state.unificationGroups.map(grp => `
+        <div class="bg-sage-bg rounded-2xl p-3 border border-sage-border flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <div class="text-xs sm:text-sm font-bold text-sage-ink">${escapeHtml(grp.canonical)}</div>
+            <div class="text-[11px] text-sage-muted mt-0.5 leading-relaxed">${escapeHtml((grp.aliases || []).join(', '))}</div>
+          </div>
+          <button
+            type="button"
+            data-delete-unification="${escapeHtml(grp.id)}"
+            aria-label="Smazat skupinu"
+            class="w-7 h-7 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center shrink-0 transition"
+          >✕</button>
+        </div>
+      `).join('');
+    }
+
+    /* ==========================================================================
+       13. VÝŽIVOVÝ PŘEHLED, PROFIL CÍLŮ, „SNĚDENO“ A „DO ZÁSOBY“
+       ========================================================================== */
+    function renderNutritionModal() {
+      const enabled = isNutritionEnabled();
+      document.getElementById('toggleNutritionEnabledCheckbox').checked = enabled;
+      document.getElementById('nutritionDisabledBanner').classList.toggle('hidden', enabled);
+      document.getElementById('nutritionActiveBody').classList.toggle('hidden', !enabled);
+
+      const profile = state.nutritionProfile || getDefaultNutritionProfile();
+      const modeNames = {
+        gain: 'Zdravé nabírání',
+        maintain: 'Vyváženost a udržování',
+        lose: 'Lehká redukce'
+      };
+      document.getElementById('nutritionGoalModeSubtitle').textContent = enabled
+        ? `Režim: ${modeNames[profile.goalMode] || 'Zdravé nabírání'}`
+        : 'Sledování kalorií je vypnuté';
+
+      if (!enabled) return;
+
+      const dateInfo = formatDateCzech(selectedNutritionDate);
+      document.getElementById('nutrSelectedDateLabel').textContent = dateInfo.title;
+      document.getElementById('nutrSelectedDateSub').textContent = dateInfo.sub;
+      document.getElementById('nutrNextDayBtn').disabled = selectedNutritionDate >= getLocalDateKey(0);
+
+      // Naplnění výběru receptů pro způsob B
+      const recSelect = document.getElementById('nutrRecipeSelect');
+      recSelect.innerHTML = state.recipes.map(r => {
+        const ps = calculateRecipeNutrientsPerServing(r);
+        return `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)} (${formatInt(ps.kcal)} kcal)</option>`;
+      }).join('');
+
+      const { entries, totals } = getDayTotals(selectedNutritionDate);
+      const t = profile.targets;
+
+      // Energie
+      const kcalPct = Math.min(100, Math.round((totals.kcal / Math.max(1, t.kcal)) * 100));
+      document.getElementById('nutrKcalNumbers').textContent = `${formatInt(totals.kcal)} / ${formatInt(t.kcal)} kcal`;
+      document.getElementById('nutrKcalBar').style.width = `${kcalPct}%`;
+      const kcalDiff = Math.round(t.kcal - totals.kcal);
+      document.getElementById('nutrKcalHint').textContent = kcalDiff > 0
+        ? (profile.goalMode === 'gain'
+            ? `Do cíle nabírání zbývá ještě cca ${formatInt(kcalDiff)} kcal.`
+            : `Zbývá cca ${formatInt(kcalDiff)} kcal do denního cíle.`)
+        : `Denní energetický cíl je splněný (+${formatInt(Math.abs(kcalDiff))} kcal).`;
+
+      // Bílkoviny
+      const protPct = Math.min(100, Math.round((totals.protein / Math.max(1, t.protein)) * 100));
+      document.getElementById('nutrProteinNumbers').textContent = `${formatAmount(totals.protein)} / ${formatAmount(t.protein)} g`;
+      document.getElementById('nutrProteinBar').style.width = `${protPct}%`;
+      const protDiff = Math.round(t.protein - totals.protein);
+      document.getElementById('nutrProteinHint').textContent = protDiff > 0
+        ? `Pro podporu regenerace a svalů zbývá ještě ${protDiff} g bílkovin.`
+        : `Skvělé! Denní cíl bílkovin je splněný.`;
+
+      // Makra
+      document.getElementById('nutrCarbsText').textContent = `${Math.round(totals.carbs)} / ${Math.round(t.carbs)} g`;
+      document.getElementById('nutrFatText').textContent = `${Math.round(totals.fat)} / ${Math.round(t.fat)} g`;
+      document.getElementById('nutrFiberText').textContent = `${Math.round(totals.fiber)} / ${Math.round(t.fiber)} g`;
+
+      // 7denní radar mikroživin
+      const radar = getSevenDayMicroSummary();
+      document.getElementById('nutrRadarSubtitle').textContent = radar.loggedDaysCount > 0
+        ? `Průměr z posledních ${radar.loggedDaysCount} zapsaných dnů • klepni pro tipy`
+        : 'Zapiš první jídlo a ukáže se ti 7denní přehled vitamínů a minerálů.';
+
+      document.getElementById('nutrMicroGrid').innerHTML = radar.items.map(item => {
+        let badgeCls = 'bg-sage-tint text-sage-dark';
+        let badgeTxt = `${item.pct} %`;
+        if (item.status === 'none') {
+          badgeCls = 'bg-sage-bg text-sage-muted';
+          badgeTxt = 'bez dat';
+        } else if (item.status === 'missing') {
+          badgeCls = 'bg-ochre-bg text-ochre border border-ochre-border';
+          badgeTxt = `${item.pct} % • chybí`;
+        } else if (item.status === 'low') {
+          badgeCls = 'bg-ochre-bg/60 text-ochre';
+          badgeTxt = `${item.pct} % • přidat`;
+        }
+
+        const isSelected = selectedMicroDetailKey === item.key;
+        return `
+          <button
+            type="button"
+            data-micro-key="${escapeHtml(item.key)}"
+            class="p-2.5 rounded-2xl border ${isSelected ? 'border-sage bg-sage-tint/50' : 'border-sage-border bg-sage-bg/60 hover:bg-sage-tint/40'} text-left transition"
+          >
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs font-semibold text-sage-ink truncate">${escapeHtml(item.label)}</span>
+              <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${badgeCls}">${badgeTxt}</span>
+            </div>
+            <div class="text-[11px] text-sage-muted mt-1">
+              ${radar.loggedDaysCount > 0 ? `${formatAmount(item.avgDaily)} / ${formatAmount(item.target)} ${escapeHtml(item.unit)}` : `cíl ${formatAmount(item.target)} ${escapeHtml(item.unit)}`}
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      // Detail vybrané mikroživiny
+      const detailBox = document.getElementById('nutrMicroDetailBox');
+      const selectedMicro = radar.items.find(i => i.key === selectedMicroDetailKey);
+      if (selectedMicro) {
+        document.getElementById('nutrMicroDetailTitle').textContent = `${selectedMicro.label} — bohaté zdroje`;
+        document.getElementById('nutrMicroDetailSources').textContent = selectedMicro.sources;
+        document.getElementById('nutrMicroDetailChips').innerHTML = (selectedMicro.tipFoods || []).map(food => {
+          const meta = findCatalogNutritionMeta(food);
+          const u = meta?.unit || 'g';
+          const amt = u === 'ks' ? 2 : u === 'plechovka' ? 1 : 200;
+          return `
+            <button
+              type="button"
+              data-tip-food="${escapeHtml(food)}"
+              data-tip-amount="${amt}"
+              data-tip-unit="${escapeHtml(u)}"
+              class="px-2.5 py-1 rounded-full bg-white hover:bg-sage-tint border border-sage-border text-[11px] font-semibold text-sage-dark transition"
+            >
+              + ${escapeHtml(food)} do nákupu
+            </button>
+          `;
+        }).join('');
+        detailBox.classList.remove('hidden');
+      } else {
+        detailBox.classList.add('hidden');
+      }
+
+      // Deník zapsaných jídel vybraného dne
+      document.getElementById('nutrDayEntriesCount').textContent = `${entries.length} položek`;
+      const dayListEl = document.getElementById('nutrDayEntriesList');
+      if (entries.length === 0) {
+        dayListEl.innerHTML = `<p class="text-xs text-sage-muted italic py-2">Pro tento den zatím nemáš zapsané žádné jídlo.</p>`;
+      } else {
+        dayListEl.innerHTML = entries.map(entry => `
+          <div class="bg-sage-bg rounded-xl px-3 py-2.5 border border-sage-border flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                ${entry.mealTag ? `<span class="px-2 py-0.5 rounded-full bg-sage-tint text-sage-dark text-[10px] font-semibold">${escapeHtml(entry.mealTag)}</span>` : ''}
+                <span class="text-xs sm:text-sm font-semibold text-sage-ink truncate">${escapeHtml(entry.title)}</span>
+              </div>
+              <div class="text-[11px] text-sage-muted mt-0.5">
+                ${formatInt(entry.nutrients?.kcal)} kcal • ${formatAmount(entry.nutrients?.protein)} g bílkovin • ${Math.round(entry.nutrients?.carbs || 0)} g S • ${Math.round(entry.nutrients?.fat || 0)} g T
+              </div>
+            </div>
+            <button
+              type="button"
+              data-delete-food-log="${escapeHtml(entry.id)}"
+              aria-label="Smazat záznam"
+              class="w-7 h-7 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center shrink-0 transition"
+            >✕</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function openNutritionProfileModal() {
+      const prof = state.nutritionProfile || getDefaultNutritionProfile();
+      draftGoalMode = prof.goalMode || 'gain';
+
+      document.getElementById('profEnabledCheckbox').checked = isNutritionEnabled();
+      document.getElementById('profSexSelect').value = prof.sex || 'female';
+      document.getElementById('profAgeInput').value = prof.age || 25;
+      document.getElementById('profWeightInput').value = prof.weight || 60;
+      document.getElementById('profHeightInput').value = prof.height || 168;
+      document.getElementById('profActivitySelect').value = String(prof.activity || 1.6);
+
+      syncProfileGoalButtonsUI();
+      fillProfileTargetInputs(prof.targets);
+      openModal('nutritionProfileModal');
+    }
+
+    function syncProfileGoalButtonsUI() {
+      document.querySelectorAll('.prof-goal-btn').forEach(btn => {
+        const active = btn.dataset.goalMode === draftGoalMode;
+        btn.className = `prof-goal-btn py-2 px-2 rounded-lg text-xs transition leading-tight ${
+          active ? 'bg-white text-sage-ink font-semibold shadow-sm' : 'text-sage-muted font-medium'
+        }`;
+      });
+    }
+
+    function fillProfileTargetInputs(targets) {
+      const t = targets || getDefaultNutritionProfile().targets;
+      document.getElementById('targetKcalInput').value = Math.round(t.kcal || 2500);
+      document.getElementById('targetProteinInput').value = Math.round(t.protein || 120);
+      document.getElementById('targetCarbsInput').value = Math.round(t.carbs || 310);
+      document.getElementById('targetFatInput').value = Math.round(t.fat || 80);
+      document.getElementById('targetFiberInput').value = Math.round(t.fiber || 30);
+
+      const grid = document.getElementById('microTargetsInputsGrid');
+      grid.innerHTML = MICRONUTRIENT_META.map(m => `
+        <div>
+          <label for="microTarget_${m.key}" class="block text-[11px] text-sage-muted mb-0.5">${escapeHtml(m.label)} (${escapeHtml(m.unit)})</label>
+          <input
+            type="number"
+            id="microTarget_${m.key}"
+            step="any"
+            min="0.1"
+            value="${Number(t[m.key]) || m.defaultFemale}"
+            class="w-full h-9 px-2.5 rounded-xl bg-white border border-sage-border text-xs text-sage-ink"
+          >
+        </div>
+      `).join('');
+    }
+
+    /* ==========================================================================
+       14. GEMINI AI SLUŽBA (NASTAVENÍ KLÍČE, AI KUCHAŘ A AI ZÁPIS JÍDEL VĚTOU)
+       ========================================================================== */
+    let lastAiSuggestions = [];
+    let selectedAiMode = 'only_home';
+    let selectedAiPreference = 'Cokoliv';
+    let aiServingsCount = 4;
+
+    function getStoredGeminiKey() {
+      try {
+        return (localStorage.getItem(AI_KEY_STORAGE) || '').trim();
+      } catch {
+        return '';
+      }
+    }
+
+    function updateAiKeyUI() {
+      const key = getStoredGeminiKey();
+      const hasKey = Boolean(key);
+
+      const headerDot = document.getElementById('aiKeyIndicatorDot');
+      if (headerDot) headerDot.classList.toggle('hidden', !hasKey);
+
+      const statusDot = document.getElementById('aiKeyStatusDot');
+      const statusText = document.getElementById('aiKeyStatusText');
+      if (statusDot && statusText) {
+        if (hasKey) {
+          const masked = key.length > 10 ? `${key.slice(0, 6)}••••${key.slice(-4)}` : '••••••';
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sage shrink-0';
+          statusText.textContent = `Uložený vlastní klíč: ${masked}`;
+        } else {
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sage-soft shrink-0';
+          statusText.textContent = 'Zatím není uložen vlastní klíč.';
+        }
+      }
+    }
+
+    function extractTextFromGeminiPayload(data) {
+      const parts = data?.candidates?.[0]?.content?.parts;
+      if (!Array.isArray(parts)) return '';
+      return parts
+        .filter(p => typeof p?.text === 'string' && !p.thought)
+        .map(p => p.text)
+        .join('\n')
+        .trim() || parts.map(p => p?.text || '').join('\n').trim();
+    }
+
+    async function callGeminiWithFallback(apiKey, promptText, jsonSchema = null) {
+      const candidateModels = [
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-2.0-flash'
+      ];
+
+      let lastErr = null;
+
+      for (const model of candidateModels) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const payload = {
+            contents: [{ role: 'user', parts: [{ text: promptText }] }]
+          };
+          if (jsonSchema) {
+            payload.generationConfig = {
+              responseMimeType: 'application/json',
+              responseSchema: jsonSchema
+            };
+          }
+
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            const msg = data?.error?.message || `HTTP ${resp.status}`;
+            lastErr = new Error(msg);
+            if (resp.status === 400 && /api key not valid/i.test(msg)) {
+              throw lastErr;
+            }
+            continue;
+          }
+
+          const text = extractTextFromGeminiPayload(data);
+          if (text) return text;
+        } catch (err) {
+          lastErr = err;
+          if (/api key not valid/i.test(String(err?.message || ''))) {
+            throw err;
+          }
+        }
+      }
+
+      // Záložní automatické zjištění dostupného modelu přímo z účtu uživatele
+      try {
+        const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+        const listData = await listResp.json().catch(() => ({}));
+        const supported = (listData?.models || []).find(m =>
+          Array.isArray(m.supportedGenerationMethods) &&
+          m.supportedGenerationMethods.includes('generateContent') &&
+          /gemini/i.test(m.name || '')
+        );
+        if (supported?.name) {
+          const modelPath = supported.name.startsWith('models/') ? supported.name : `models/${supported.name}`;
+          const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const payload = {
+            contents: [{ role: 'user', parts: [{ text: promptText }] }],
+            ...(jsonSchema ? { generationConfig: { responseMimeType: 'application/json', responseSchema: jsonSchema } } : {})
+          };
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (resp.ok) {
+            const text = extractTextFromGeminiPayload(data);
+            if (text) return text;
+          } else {
+            lastErr = new Error(data?.error?.message || `HTTP ${resp.status}`);
+          }
+        }
+      } catch (err) {
+        lastErr = err;
+      }
+
+      throw lastErr || new Error('Nepodařilo se získat odpověď z Gemini API.');
+    }
+
+    async function testStoredGeminiKey() {
+      const inputVal = (document.getElementById('aiApiKeyInput').value || '').trim();
+      const apiKey = inputVal || getStoredGeminiKey();
+      const resBox = document.getElementById('aiKeyTestResult');
+
+      if (!apiKey) {
+        resBox.className = 'text-xs rounded-xl px-3 py-2 border bg-ochre-bg border-ochre-border text-sage-ink';
+        resBox.textContent = 'Nejdřív vlož svůj Gemini API klíč do políčka výše.';
+        resBox.classList.remove('hidden');
+        return;
+      }
+
+      resBox.className = 'text-xs rounded-xl px-3 py-2 border bg-sage-bg border-sage-border text-sage-muted';
+      resBox.textContent = 'Ověřuji spojení s Google Gemini…';
+      resBox.classList.remove('hidden');
+
+      try {
+        await callGeminiWithFallback(apiKey, 'Odpověz jedním slovem: OK');
+        localStorage.setItem(AI_KEY_STORAGE, apiKey);
+        updateAiKeyUI();
+        resBox.className = 'text-xs rounded-xl px-3 py-2 border bg-sage-tint border-sage-soft text-sage-dark font-medium';
+        resBox.textContent = '✓ Klíč je uložený a plně funkční!';
+      } catch (err) {
+        resBox.className = 'text-xs rounded-xl px-3 py-2 border bg-danger-bg border-danger-border text-danger';
+        resBox.textContent = `Chyba ověření: ${err?.message || 'Neplatný klíč nebo problém se sítí.'}`;
+      }
+    }
+
+    /** AI zápis jídla normální větou (s lokální cache pro okamžité opakování) */
+    async function logMealFromAiSentence() {
+      const input = document.getElementById('nutrAiSentenceInput');
+      const sentence = (input.value || '').trim();
+      if (!sentence) {
+        showToast('Napiš prosím, co jsi jedla.');
+        return;
+      }
+
+      const cacheKey = cleanRawPhrase(sentence);
+      if (state.aiFoodCache && state.aiFoodCache[cacheKey]) {
+        const cached = state.aiFoodCache[cacheKey];
+        state.foodLog.unshift({
+          id: uid('fl'),
+          date: selectedNutritionDate,
+          mealTag: selectedMealTag || '',
+          title: cached.title || capitalizeFirst(sentence),
+          nutrients: addNutrients(emptyNutrients(), cached.nutrients, 1)
+        });
+        saveState();
+        input.value = '';
+        renderNutritionModal();
+        renderShopping();
+        showToast(`✓ Zapsáno z paměti (${formatInt(cached.nutrients.kcal)} kcal)`);
+        return;
+      }
+
+      const apiKey = getStoredGeminiKey();
+      if (!apiKey) {
+        showToast('Pro zápis větou vlož nejdřív svůj bezplatný AI klíč vpravo nahoře (✨).');
+        openModal('aiSettingsModal');
+        return;
+      }
+
+      const btn = document.getElementById('logFromAiSentenceBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Počítám živiny…</span>';
+
+      try {
+        const schema = {
+          type: 'OBJECT',
+          properties: {
+            title: { type: 'STRING' },
+            kcal: { type: 'NUMBER' },
+            protein: { type: 'NUMBER' },
+            carbs: { type: 'NUMBER' },
+            fat: { type: 'NUMBER' },
+            fiber: { type: 'NUMBER' },
+            iron: { type: 'NUMBER' },
+            magnesium: { type: 'NUMBER' },
+            calcium: { type: 'NUMBER' },
+            zinc: { type: 'NUMBER' },
+            potassium: { type: 'NUMBER' },
+            vitC: { type: 'NUMBER' },
+            vitD: { type: 'NUMBER' },
+            vitB12: { type: 'NUMBER' },
+            folate: { type: 'NUMBER' },
+            omega3: { type: 'NUMBER' }
+          },
+          required: ['title', 'kcal', 'protein', 'carbs', 'fat', 'fiber']
+        };
+
+        const prompt = `Odhadni orientační výživové hodnoty jedné běžné české porce pro tento popis jídla: "${sentence}".
+Vrať čistý JSON s názvem jídla česky (title) a odhadovanými hodnotami pro tuto porci:
+kcal, protein (g), carbs (g), fat (g), fiber (g), iron (mg), magnesium (mg), calcium (mg), zinc (mg), potassium (mg), vitC (mg), vitD (µg), vitB12 (µg), folate (µg), omega3 (g).`;
+
+        const rawJson = await callGeminiWithFallback(apiKey, prompt, schema);
+        const parsed = JSON.parse(rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
+
+        const nutrients = emptyNutrients();
+        ALL_NUTRIENT_KEYS.forEach(k => {
+          nutrients[k] = Math.max(0, Math.round((Number(parsed[k]) || 0) * 100) / 100);
+        });
+
+        const cleanTitle = capitalizeFirst(parsed.title || sentence);
+        state.aiFoodCache[cacheKey] = { title: cleanTitle, nutrients };
+        state.foodLog.unshift({
+          id: uid('fl'),
+          date: selectedNutritionDate,
+          mealTag: selectedMealTag || '',
+          title: cleanTitle,
+          nutrients
+        });
+
+        saveState();
+        input.value = '';
+        renderNutritionModal();
+        renderShopping();
+        showToast(`✓ Zapsáno: ${cleanTitle} (${formatInt(nutrients.kcal)} kcal, ${formatAmount(nutrients.protein)} g B)`);
+      } catch (err) {
+        showToast(`AI odhad se nezdařil: ${err?.message || 'zkus to prosím znovu'}`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨ Zapsat přes AI</span>';
+      }
+    }
+
+    function openAiChefModal() {
+      const available = state.pantry.filter(p => Number(p.amount) > 0);
+      document.getElementById('aiChefPantrySummary').textContent = available.length > 0
+        ? `Doma máš ${available.length} surovin (${available.slice(0, 4).map(p => p.name).join(', ')}${available.length > 4 ? '…' : ''})`
+        : 'V zásobách Doma zatím nemáš zapsané žádné suroviny';
+
+      const ctxNote = document.getElementById('aiChefNutritionContextNote');
+      if (isNutritionEnabled()) {
+        const prof = state.nutritionProfile || getDefaultNutritionProfile();
+        const { totals } = getDayTotals(getLocalDateKey(0));
+        const remKcal = Math.max(0, Math.round(prof.targets.kcal - totals.kcal));
+        const remProt = Math.max(0, Math.round(prof.targets.protein - totals.protein));
+        const radar = getSevenDayMicroSummary();
+        const lackingTxt = radar.lacking.slice(0, 2).map(l => l.label.toLowerCase()).join(', ');
+        ctxNote.textContent = `Tvůj profil: ${prof.goalMode === 'gain' ? 'zdravé nabírání' : prof.goalMode === 'lose' ? 'lehká redukce' : 'vyváženost'} • dnes zbývá cca ${formatInt(remKcal)} kcal a ${remProt} g bílkovin${lackingTxt ? ` • dlouhodobě doplnit: ${lackingTxt}` : ''}.`;
+        ctxNote.classList.remove('hidden');
+      } else {
+        ctxNote.classList.add('hidden');
+      }
+
+      document.getElementById('aiErrorBox').classList.add('hidden');
+      openModal('aiChefModal');
+    }
+
+    function renderAiChefResults() {
+      const container = document.getElementById('aiResultsContainer');
+      const moreBtn = document.getElementById('aiMoreIdeasBtn');
+      const nutrOn = isNutritionEnabled();
+
+      if (!Array.isArray(lastAiSuggestions) || lastAiSuggestions.length === 0) {
+        container.innerHTML = '';
+        moreBtn.classList.add('hidden');
+        return;
+      }
+
+      container.innerHTML = lastAiSuggestions.map((rec, rIdx) => {
+        const evalDetails = (rec.ingredients || []).map(ing => ({
+          ing,
+          match: evaluateIngredientMatch(ing, state.pantry)
+        }));
+        const haveCount = evalDetails.filter(d => d.match.status === 'have').length;
+        const totalCount = evalDetails.length;
+        const canCook = totalCount > 0 && haveCount === totalCount;
+        const missingList = evalDetails.filter(d => d.match.status !== 'have');
+        const perServ = calculateRecipeNutrientsPerServing(rec);
+
+        const ingHtml = evalDetails.map(({ ing, match }, iIdx) => {
+          const swapKey = `ai:${rIdx}:${iIdx}`;
+          const isSwapping = activeSwapTarget === swapKey;
+
+          let statusTxt = '';
+          if (match.status === 'have') {
+            statusTxt = match.unifiedViaDifferentName
+              ? `<span class="text-sage-dark">✓ Doma jako: ${escapeHtml(match.matchedNames.join(', '))}</span>`
+              : `<span class="text-sage-dark">✓ Doma (${escapeHtml(match.availableText)})</span>`;
+          } else if (match.status === 'partial') {
+            statusTxt = `<span class="text-ochre">◐ Doma jen ${escapeHtml(match.availableText)}</span>`;
+          } else {
+            statusTxt = `<span class="text-danger">✕ Dokoupit</span>`;
+          }
+
+          const swapBox = isSwapping ? `
+            <div class="mt-1.5 pt-1.5 border-t border-sage-border flex items-center gap-1.5">
+              <input
+                type="text"
+                data-swap-input="${swapKey}"
+                value="${escapeHtml(ing.name)}"
+                placeholder="Nová surovina..."
+                autocomplete="off"
+                class="flex-1 min-w-0 h-8 px-2.5 rounded-lg bg-white border border-sage text-xs text-sage-ink focus:outline-none"
+              >
+              <button
+                type="button"
+                data-ai-action="apply-swap"
+                data-ai-idx="${rIdx}"
+                data-ing-idx="${iIdx}"
+                class="h-8 px-2.5 rounded-lg bg-sage text-white text-[11px] font-semibold shrink-0"
+              >OK</button>
+              <button
+                type="button"
+                data-ai-action="cancel-swap"
+                class="w-7 h-8 rounded-lg bg-white border border-sage-border text-sage-muted text-xs shrink-0"
+              >✕</button>
+            </div>
+          ` : '';
+
+          return `
+            <li class="bg-sage-bg rounded-xl px-2.5 py-2 border border-sage-border/70 text-xs">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <span class="font-semibold text-sage-ink">${escapeHtml(ing.name)}</span>
+                  <span class="text-sage-muted">(${formatAmount(ing.amount)} ${escapeHtml(ing.unit)})</span>
+                  <div class="mt-0.5 text-[11px]">${statusTxt}</div>
+                </div>
+                <button
+                  type="button"
+                  data-ai-action="open-swap"
+                  data-swap-key="${swapKey}"
+                  title="Vyměnit surovinu"
+                  class="px-2 py-0.5 rounded-lg bg-white hover:bg-sage-tint border border-sage-border text-[11px] font-semibold text-sage-dark shrink-0"
+                >⇄</button>
+              </div>
+              ${swapBox}
+            </li>
+          `;
+        }).join('');
+
+        return `
+          <article class="bg-white rounded-2xl p-4 border ${canCook ? 'border-sage-soft' : 'border-sage-border'} shadow-sm space-y-3">
+            <div>
+              ${rec.variantLabel ? `<span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sage-tint text-sage-dark mb-1">${escapeHtml(rec.variantLabel)}</span>` : ''}
+              <h3 class="text-sm sm:text-base font-bold text-sage-ink">${escapeHtml(rec.name)}</h3>
+              ${rec.note ? `<p class="text-xs text-sage-muted mt-0.5 leading-relaxed">${escapeHtml(rec.note)}</p>` : ''}
+              <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                  canCook ? 'bg-sage-tint text-sage-dark' : 'bg-ochre-bg text-ochre border border-ochre-border'
+                }">
+                  ${canCook ? '✓ Máš vše doma' : `${haveCount} / ${totalCount} surovin doma`}
+                </span>
+                ${rec.prepTime ? `<span class="px-2 py-0.5 rounded-full bg-sage-bg text-sage-muted text-[11px]">⏱ ${escapeHtml(rec.prepTime)}</span>` : ''}
+                <span class="px-2 py-0.5 rounded-full bg-sage-bg text-sage-muted text-[11px]">🍽 ${rec.servings || aiServingsCount} porce</span>
+                ${nutrOn ? `<span class="px-2 py-0.5 rounded-full bg-sage-bg text-sage-dark text-[11px] font-medium">${formatInt(perServ.kcal)} kcal • ${formatAmount(perServ.protein)} g B / porce</span>` : ''}
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-bold text-sage-ink mb-1.5">Suroviny (včetně přílohy a koření • ⇄ výměna)</div>
+              <ul class="space-y-1.5">${ingHtml}</ul>
+            </div>
+
+            ${Array.isArray(rec.steps) && rec.steps.length > 0 ? `
+              <div class="pt-2 border-t border-sage-border/70">
+                <div class="text-xs font-bold text-sage-ink mb-1">Postup přípravy</div>
+                <ol class="space-y-1 text-xs text-sage-ink list-decimal list-inside leading-relaxed">
+                  ${rec.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                </ol>
+              </div>
+            ` : ''}
+
+            <div class="pt-2 border-t border-sage-border/70 flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                data-ai-action="save-recipe"
+                data-ai-idx="${rIdx}"
+                class="px-3 py-2 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs font-semibold shadow-sm transition"
+              >
+                + Uložit do receptů
+              </button>
+              <button
+                type="button"
+                data-ai-action="cook-batch"
+                data-ai-idx="${rIdx}"
+                class="px-3 py-2 rounded-xl bg-sage-tint hover:bg-sage text-sage-dark hover:text-white text-xs font-semibold transition"
+              >
+                🍲 Uvařit do zásoby
+              </button>
+              ${missingList.length > 0 ? `
+                <button
+                  type="button"
+                  data-ai-action="add-missing"
+                  data-ai-idx="${rIdx}"
+                  class="px-3 py-2 rounded-xl bg-ochre-bg hover:bg-ochre/20 text-ochre border border-ochre-border text-xs font-semibold transition"
+                >
+                  + Chybějící do nákupu (${missingList.length})
+                </button>
+              ` : ''}
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      moreBtn.classList.remove('hidden');
+
+      if (activeSwapTarget && activeSwapTarget.startsWith('ai:')) {
+        const inp = document.querySelector(`[data-swap-input="${activeSwapTarget}"]`);
+        if (inp) {
+          attachAutocomplete(inp, (picked) => {
+            inp.value = picked.name;
+            closeAutocomplete();
+          });
+          inp.focus();
+          inp.select();
+        }
+      }
+    }
+
+    async function generateAiChefRecipes(differentBatch = false) {
+      const apiKey = getStoredGeminiKey();
+      const errBox = document.getElementById('aiErrorBox');
+      const loadBox = document.getElementById('aiLoadingBox');
+      const genBtn = document.getElementById('aiGenerateBtn');
+      const moreBtn = document.getElementById('aiMoreIdeasBtn');
+
+      if (!apiKey) {
+        errBox.classList.remove('hidden');
+        document.getElementById('aiErrorTitle').textContent = 'Chybí Gemini API klíč';
+        document.getElementById('aiErrorText').textContent = 'Pro používání AI Kuchaře si vlož svůj bezplatný klíč z Google AI Studio.';
+        document.getElementById('aiErrorDetail').classList.add('hidden');
+        return;
+      }
+
+      errBox.classList.add('hidden');
+      loadBox.classList.remove('hidden');
+      genBtn.disabled = true;
+      moreBtn.disabled = true;
+      activeSwapTarget = null;
+
+      const pantryText = state.pantry
+        .filter(p => Number(p.amount) > 0)
+        .map(p => `${p.name} (${formatAmount(p.amount)} ${p.unit})`)
+        .join(', ') || 'žádné konkrétní suroviny';
+
+      const wish = (document.getElementById('aiWishInput').value || '').trim();
+      const prof = state.nutritionProfile || getDefaultNutritionProfile();
+      const { totals } = getDayTotals(getLocalDateKey(0));
+      const radar = getSevenDayMicroSummary();
+
+      const nutritionInstruction = isNutritionEnabled()
+        ? `Uživatel má cíl: ${prof.goalMode === 'gain' ? 'zdravé nabírání (cca 2500 kcal/den, dostatek bílkovin ke cvičení)' : prof.goalMode === 'lose' ? 'lehká redukce s vysokými bílkovinami' : 'vyvážená strava'}. Dnes zatím snědl ${Math.round(totals.kcal)} z ${prof.targets.kcal} kcal a ${Math.round(totals.protein)} z ${prof.targets.protein} g bílkovin. Dlouhodobě mu v týdnu chybí: ${radar.lacking.slice(0, 3).map(l => l.label).join(', ') || 'nic výrazného'}.`
+        : 'Uživatel nesleduje kalorie, zaměř se čistě na chutná, vyvážená domácí jídla.';
+
+      const modeInstruction = wish
+        ? `Uživatel zadal konkrétní chuť: "${wish}". Všechny 3 recepty postav na této chuti, automaticky k nim dolaď vhodnou přílohu (rýže, brambory, batáty, těstoviny, pečivo apod.) a koření:
+- 1. recept (variantLabel: "🏠 Z tvých zásob doma"): nakombinuj zadanou chuť s přílohou a surovinami, které už jsou doma.
+- 2. recept (variantLabel: "🌿 Pro tvé živiny a cíle"): dolaď přílohu a doplňky podle nutričních potřeb uživatele.
+- 3. recept (variantLabel: "💡 Zajímavý nápad navíc"): nabídni originální, chutnou variaci s jinou přílohou.`
+        : selectedAiMode === 'only_home'
+          ? 'Režim "Z toho, co mám doma": použij primárně suroviny, které má uživatel doma (plus běžné koření, sůl, pepř a vodu, které má každý v kuchyni). Slož z nich kompletní jídla i s přílohou, pokud je doma.'
+          : `Režim "Co teď potřebuji": vymysli 3 kompletní, chutná česká jídla (včetně přílohy a koření), která nejlépe doplní dnešní a týdenní potřeby uživatele a zároveň chytře využijí i něco ze zásob doma.`;
+
+      const avoidNames = differentBatch && lastAiSuggestions.length > 0
+        ? `Nevymýšlej znovu tato jídla: ${lastAiSuggestions.map(r => r.name).join(', ')}.`
+        : '';
+
+      const schema = {
+        type: 'ARRAY',
+        items: {
+          type: 'OBJECT',
+          properties: {
+            variantLabel: { type: 'STRING' },
+            name: { type: 'STRING' },
+            prepTime: { type: 'STRING' },
+            servings: { type: 'NUMBER' },
+            note: { type: 'STRING' },
+            ingredients: {
+              type: 'ARRAY',
+              items: {
+                type: 'OBJECT',
+                properties: {
+                  name: { type: 'STRING' },
+                  amount: { type: 'NUMBER' },
+                  unit: { type: 'STRING' }
+                },
+                required: ['name', 'amount', 'unit']
+              }
+            },
+            steps: {
+              type: 'ARRAY',
+              items: { type: 'STRING' }
+            }
+          },
+          required: ['name', 'prepTime', 'servings', 'note', 'ingredients', 'steps']
+        }
+      };
+
+      const prompt = `Jsi špičkový český osobní kuchař. Vymysli přesně 3 kompletní recepty pro ${aiServingsCount} porcí.
+Preference typu jídla: ${selectedAiPreference}.
+Suroviny doma: ${pantryText}.
+${nutritionInstruction}
+${modeInstruction}
+${avoidNames}
+
+Důležitá pravidla:
+- U slaných hlavních jídel vždy zahrň do surovin i vhodnou přílohu (pokud není součástí pokrmu) a běžné koření/bylinky pro skvělou chuť.
+- Používej čisté české názvy surovin v 1. pádě (např. "Kuřecí prsa", "Rýže", "Cibule", "Sladká paprika", "Sůl a pepř").
+- Pro jednotky (unit) používej výhradně tyto hodnoty: ks, g, kg, ml, l, lžíce, lžička, hrst, stroužek, plechovka, balení, hrnek, špetka.`;
+
+      try {
+        const rawJson = await callGeminiWithFallback(apiKey, prompt, schema);
+        const parsed = JSON.parse(rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
+
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+          throw new Error('AI nevrátila žádný platný recept.');
+        }
+
+        lastAiSuggestions = parsed.map(item => ({
+          variantLabel: item.variantLabel || '',
+          name: capitalizeFirst(item.name || 'Recept od AI'),
+          prepTime: item.prepTime || '25 min',
+          servings: Math.max(1, Number(item.servings) || aiServingsCount),
+          note: item.note || '',
+          ingredients: Array.isArray(item.ingredients)
+            ? item.ingredients.map(ing => ({
+                name: capitalizeFirst(ing.name || ''),
+                amount: Math.round((Number(ing.amount) || 1) * 100) / 100,
+                unit: UNITS.includes(ing.unit) ? ing.unit : 'g'
+              })).filter(i => i.name)
+            : [],
+          steps: Array.isArray(item.steps) ? item.steps.map(s => String(s).trim()).filter(Boolean) : []
+        }));
+
+        renderAiChefResults();
+      } catch (err) {
+        errBox.classList.remove('hidden');
+        document.getElementById('aiErrorTitle').textContent = 'Nepodařilo se vygenerovat recepty';
+        document.getElementById('aiErrorText').textContent = 'Zkontroluj připojení k internetu nebo svůj Gemini API klíč v nastavení AI.';
+        const det = document.getElementById('aiErrorDetail');
+        det.textContent = String(err?.message || err);
+        det.classList.remove('hidden');
+      } finally {
+        loadBox.classList.add('hidden');
+        genBtn.disabled = false;
+        moreBtn.disabled = false;
+      }
+    }
+
+    /* ==========================================================================
+       15. RYCHLÉ MODÁLY „✓ SNĚDENO“ A „🍲 UVAŘIT DO ZÁSOBY“
+       ========================================================================== */
+    function openQuickEatModal(recipeId) {
+      const recipe = state.recipes.find(r => r.id === recipeId);
+      if (!recipe) return;
+      quickEatRecipeId = recipeId;
+      quickEatPortion = 1;
+
+      document.getElementById('quickEatRecipeTitle').textContent = recipe.name;
+      document.getElementById('quickEatDeductPantryCheckbox').checked = false;
+      updateQuickEatPreview();
+      openModal('quickEatModal');
+    }
+
+    function updateQuickEatPreview() {
+      const recipe = state.recipes.find(r => r.id === quickEatRecipeId);
+      if (!recipe) return;
+
+      document.querySelectorAll('.quick-eat-portion-btn').forEach(btn => {
+        const active = Number(btn.dataset.eatPortion) === quickEatPortion;
+        btn.className = `quick-eat-portion-btn h-10 rounded-xl text-xs font-semibold transition ${
+          active ? 'bg-sage text-white shadow-sm' : 'bg-sage-bg border border-sage-border text-sage-ink'
+        }`;
+      });
+
+      const previewEl = document.getElementById('quickEatNutritionPreview');
+      if (!isNutritionEnabled()) {
+        previewEl.classList.add('hidden');
+        return;
+      }
+      previewEl.classList.remove('hidden');
+      const perServ = calculateRecipeNutrientsPerServing(recipe);
+      const kcal = Math.round(perServ.kcal * quickEatPortion);
+      const prot = Math.round(perServ.protein * quickEatPortion * 10) / 10;
+      previewEl.textContent = `Orientačně: ${formatInt(kcal)} kcal • ${formatAmount(prot)} g bílkovin`;
+    }
+
+    function openCookBatchModalForRecipe(recipeId) {
+      const recipe = state.recipes.find(r => r.id === recipeId);
+      if (!recipe) return;
+      cookBatchRecipeId = recipeId;
+      cookBatchAiIndex = null;
+      const defaultPortions = Math.max(2, Number(recipe.servings) || 4);
+      document.getElementById('cookBatchRecipeTitle').textContent = recipe.name;
+      document.getElementById('cookBatchCustomPortionsInput').value = defaultPortions;
+      document.getElementById('cookBatchDeductPantryCheckbox').checked = true;
+      syncCookBatchPresetUI(defaultPortions);
+      openModal('cookBatchModal');
+    }
+
+    function openCookBatchModalForAi(aiIdx) {
+      const rec = lastAiSuggestions[aiIdx];
+      if (!rec) return;
+      cookBatchRecipeId = null;
+      cookBatchAiIndex = aiIdx;
+      const defaultPortions = Math.max(2, Number(rec.servings) || aiServingsCount);
+      document.getElementById('cookBatchRecipeTitle').textContent = rec.name;
+      document.getElementById('cookBatchCustomPortionsInput').value = defaultPortions;
+      document.getElementById('cookBatchDeductPantryCheckbox').checked = true;
+      syncCookBatchPresetUI(defaultPortions);
+      openModal('cookBatchModal');
+    }
+
+    function syncCookBatchPresetUI(val) {
+      document.querySelectorAll('.cook-batch-preset-btn').forEach(btn => {
+        const active = Number(btn.dataset.batchPreset) === Number(val);
+        btn.className = `cook-batch-preset-btn h-9 rounded-xl text-xs font-semibold transition ${
+          active ? 'bg-sage text-white shadow-sm' : 'bg-sage-bg border border-sage-border text-sage-ink'
+        }`;
+      });
+    }
+
+    /* ==========================================================================
+       16. UDÁLOSTI A INICIALIZACE APLIKACE
+       ========================================================================== */
+    function initEvents() {
+      // Přepínání 4 hlavních záložek
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      // Zavírání modálů křížkem nebo klikem mimo kartu
+      document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
+      });
+      document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop) closeModal(backdrop.id);
+        });
+      });
+
+      // Sdílený našeptávač kliknutí
+      const dd = document.getElementById('autocompleteDropdown');
+      dd.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-ac-idx]');
+        if (!btn || !dd._matches) return;
+        const picked = dd._matches[Number(btn.dataset.acIdx)];
+        if (picked && typeof activeAutocompleteOnSelect === 'function') {
+          activeAutocompleteOnSelect(picked);
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (!dd.classList.contains('hidden') && !dd.contains(e.target) && e.target !== activeAutocompleteInput) {
+          closeAutocomplete();
+        }
+      });
+
+      // Potvrzovací dialog
+      document.getElementById('confirmCancelBtn').addEventListener('click', () => closeModal('confirmModal'));
+      document.getElementById('confirmOkBtn').addEventListener('click', () => {
+        closeModal('confirmModal');
+        if (typeof confirmCallback === 'function') confirmCallback();
+      });
+
+      // Horní ikonky: Výživa, Nastavení AI, Obnovení ukázky
+      document.getElementById('openNutritionBtn').addEventListener('click', () => {
+        selectedNutritionDate = getLocalDateKey(0);
+        renderNutritionModal();
+        openModal('nutritionModal');
+      });
+
+      document.getElementById('openAiSettingsBtn').addEventListener('click', () => {
+        document.getElementById('aiApiKeyInput').value = getStoredGeminiKey();
+        document.getElementById('aiKeyTestResult').classList.add('hidden');
+        updateAiKeyUI();
+        openModal('aiSettingsModal');
+      });
+
+      document.getElementById('resetDemoBtn').addEventListener('click', () => {
+        askConfirm(
+          'Obnovit ukázková data?',
+          'Přepíše aktuální nákup, plán, recepty i zásoby výchozí ukázkou (tvůj uložený AI klíč zůstane).',
+          () => {
+            state = getDefaultState();
+            saveState();
+            updateNutritionHeaderIndicator();
+            switchTab(activeTab);
+            showToast('Ukázková data byla obnovena.');
+          }
+        );
+      });
+
+      /* --- NÁKUPNÍ SEZNAM --- */
+      const shopNameInp = document.getElementById('shoppingNameInput');
+      const shopUnitSel = document.getElementById('shoppingUnitSelect');
+      populateUnitSelect(shopUnitSel, 'ks');
+      attachAutocomplete(shopNameInp, (picked) => {
+        shopNameInp.value = picked.name;
+        if (picked.unit && UNITS.includes(picked.unit)) shopUnitSel.value = picked.unit;
+        closeAutocomplete();
+      });
+
+      document.getElementById('shoppingForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = shopNameInp.value.trim();
+        if (!name) return;
+        const amount = Number(document.getElementById('shoppingAmountInput').value) || 1;
+        const unit = shopUnitSel.value;
+        addOrMergeShoppingItem(name, amount, unit);
+        saveState();
+        shopNameInp.value = '';
+        document.getElementById('shoppingAmountInput').value = '1';
+        renderShopping();
+      });
+
+      document.getElementById('toggleShoppingNutrientTipsBtn').addEventListener('click', () => {
+        const body = document.getElementById('shoppingNutrientTipsBody');
+        const arrow = document.getElementById('shoppingNutrientTipsArrow');
+        body.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-180');
+      });
+
+      document.addEventListener('click', (e) => {
+        const tipBtn = e.target.closest('[data-tip-food]');
+        if (!tipBtn) return;
+        const food = tipBtn.dataset.tipFood;
+        const amt = Number(tipBtn.dataset.tipAmount) || 1;
+        const unit = tipBtn.dataset.tipUnit || 'g';
+        addOrMergeShoppingItem(food, amt, unit);
+        saveState();
+        if (activeTab === 'shopping') renderShopping();
+        else updateShoppingBadge();
+        showToast(`+ ${food} přidáno do nákupu.`);
+      });
+
+      document.getElementById('tab-shopping').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+
+        if (action === 'toggle-shop') {
+          const item = state.shoppingList.find(i => i.id === id);
+          if (item) {
+            item.checked = !item.checked;
+            saveState();
+            renderShopping();
+          }
+        } else if (action === 'delete-shop') {
+          state.shoppingList = state.shoppingList.filter(i => i.id !== id);
+          saveState();
+          renderShopping();
+        }
+      });
+
+      document.getElementById('clearCheckedBtn').addEventListener('click', () => {
+        state.shoppingList = state.shoppingList.filter(i => !i.checked);
+        saveState();
+        renderShopping();
+        showToast('Odškrtnuté položky byly smazány.');
+      });
+
+      document.getElementById('moveCheckedHomeBtn').addEventListener('click', () => {
+        const checkedItems = state.shoppingList.filter(i => i.checked);
+        if (checkedItems.length === 0) return;
+
+        checkedItems.forEach(item => {
+          addOrMergePantryItem(item.name, item.amount, item.unit, guessLocationForName(item.name));
+        });
+        state.shoppingList = state.shoppingList.filter(i => !i.checked);
+        saveState();
+        renderShopping();
+        showToast(`Přesunuto domů: ${checkedItems.length} položek.`);
+      });
+
+      /* --- TÝDENNÍ PLÁN --- */
+      document.getElementById('addPlanToShoppingBtn').addEventListener('click', addPlanToShopping);
+
       document.getElementById('clearPlanBtn').addEventListener('click', () => {
         askConfirm('Vyčistit celý týden?', 'Odebereš všechna naplánovaná jídla ze všech 7 dnů.', () => {
           for (let d = 0; d < 7; d++) state.plan[d] = [];
@@ -3136,10 +4795,76 @@
       });
 
       document.getElementById('planDaysList').addEventListener('click', (e) => {
-// ... existing code ... -->
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const dayIdx = Number(btn.dataset.day);
+
+        if (action === 'open-plan-picker') {
+          openPlanPickerModal(dayIdx);
+        } else if (action === 'remove-plan-entry') {
+          const entryId = btn.dataset.entryId;
+          state.plan[dayIdx] = (state.plan[dayIdx] || []).filter(item => item.id !== entryId);
+          saveState();
+          renderPlan();
+        } else if (action === 'eat-plan-entry') {
+          const entryId = btn.dataset.entryId;
+          const entry = (state.plan[dayIdx] || []).find(item => item.id === entryId);
+          if (!entry) return;
+
+          if (entry.cookedBatchName) {
+            const perServ = entry.perServingNutrients || calculateIngredientNutrients(entry.cookedBatchName, 250, 'g');
+            state.foodLog.unshift({
+              id: uid('fl'),
+              date: getLocalDateKey(0),
+              mealTag: '',
+              title: entry.cookedBatchName,
+              nutrients: addNutrients(emptyNutrients(), perServ, 1)
+            });
+            saveState();
+            showToast(`✓ Zapsáno do dneška: ${entry.cookedBatchName}`);
+          } else if (entry.recipeId) {
+            openQuickEatModal(entry.recipeId);
+          }
+        }
+      });
+
+      document.querySelectorAll('.plan-span-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          planPickerSpanDays = Number(btn.dataset.planSpan) || 1;
+          syncPlanPickerSpanUI();
+        });
+      });
+
+      document.getElementById('planPickerSearch').addEventListener('input', renderPlanPickerList);
+
+      document.getElementById('planPickerList').addEventListener('click', (e) => {
+        // Výběr z uvařených zásob (odečte 1 porci ze zásob a přidá do vybraného dne)
+        const batchBtn = e.target.closest('[data-pick-batch]');
+        if (batchBtn) {
+          const batchId = batchBtn.dataset.pickBatch;
+          const batch = state.cookedBatches.find(b => b.id === batchId);
+          if (batch && pickingPlanDay !== null) {
+            state.plan[pickingPlanDay].push({
+              id: uid('pl'),
+              cookedBatchName: batch.name,
+              perServingNutrients: batch.perServingNutrients
+            });
+            batch.portions = Math.max(0, Math.round((Number(batch.portions) - 1) * 10) / 10);
+            if (batch.portions <= 0) {
+              state.cookedBatches = state.cookedBatches.filter(b => b.id !== batchId);
+            }
+            saveState();
+            closeModal('planPickerModal');
+            renderPlan();
+            showToast(`🍲 Přidáno na ${DAYS[pickingPlanDay]} (zbývá ${formatAmount(batch.portions)} porcí).`);
+          }
+          return;
+        }
+
         // Výběr klasického receptu (na 1 až 4 dny s plynulým přechodem přes víkend do dalšího týdne)
         const recBtn = e.target.closest('[data-pick-recipe]');
-        if (!recBtn) return;
+        if (!recBtn || pickingPlanDay === null) return;
         const recId = recBtn.dataset.pickRecipe;
         const todayIdx = getTodayDayIndex();
         const posInRollingWeek = (pickingPlanDay - todayIdx + 7) % 7;
@@ -3157,4 +4882,835 @@
         }
 
         saveState();
-// ... existing code ... -->
+        closeModal('planPickerModal');
+        renderPlan();
+        showToast(span > 1 ? `Naplánováno na ${span} dny (suroviny se koupí jen 1×).` : `Přidáno na ${DAYS[pickingPlanDay]}.`);
+      });
+
+      /* --- RECEPTY --- */
+      document.getElementById('recipeSearchInput').addEventListener('input', renderRecipes);
+
+      document.querySelectorAll('.recipe-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          recipeFilter = btn.dataset.recipeFilter;
+          document.querySelectorAll('.recipe-filter-btn').forEach(b => {
+            const active = b.dataset.recipeFilter === recipeFilter;
+            b.className = `recipe-filter-btn flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm transition ${
+              active ? 'bg-white text-sage-ink font-semibold shadow-sm' : 'text-sage-muted font-medium'
+            }`;
+          });
+          renderRecipes();
+        });
+      });
+
+      document.getElementById('openNewRecipeBtn').addEventListener('click', () => openRecipeModal(null));
+
+      document.getElementById('recipesList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+
+        if (action === 'toggle-recipe') {
+          const id = btn.dataset.id;
+          if (openRecipeIds.has(id)) openRecipeIds.delete(id);
+          else openRecipeIds.add(id);
+          renderRecipes();
+        } else if (action === 'open-swap') {
+          activeSwapTarget = btn.dataset.swapKey;
+          renderRecipes();
+        } else if (action === 'cancel-swap') {
+          activeSwapTarget = null;
+          closeAutocomplete();
+          renderRecipes();
+        } else if (action === 'apply-swap') {
+          const recId = btn.dataset.recipeId;
+          const ingIdx = Number(btn.dataset.ingIdx);
+          const inp = document.querySelector(`[data-swap-input="rec:${recId}:${ingIdx}"]`);
+          const newName = capitalizeFirst(inp?.value || '');
+          const recipe = state.recipes.find(r => r.id === recId);
+          if (recipe && recipe.ingredients[ingIdx] && newName) {
+            recipe.ingredients[ingIdx].name = newName;
+            delete recipe.aiNutritionPerServing;
+            activeSwapTarget = null;
+            closeAutocomplete();
+            saveState();
+            renderRecipes();
+            showToast(`Vyměněno za: ${newName}`);
+          }
+        } else if (action === 'quick-eat-recipe') {
+          openQuickEatModal(btn.dataset.id);
+        } else if (action === 'cook-batch-recipe') {
+          openCookBatchModalForRecipe(btn.dataset.id);
+        } else if (action === 'add-missing-recipe') {
+          const recipe = state.recipes.find(r => r.id === btn.dataset.id);
+          if (!recipe) return;
+          const ev = evaluateRecipe(recipe);
+          let added = 0;
+          ev.details.forEach(({ ing, match }) => {
+            if (match.status === 'missing') {
+              addOrMergeShoppingItem(ing.name, ing.amount, ing.unit);
+              added++;
+            } else if (match.status === 'partial' && match.missingAmount > 0) {
+              addOrMergeShoppingItem(ing.name, match.missingAmount, ing.unit);
+              added++;
+            }
+          });
+          saveState();
+          updateShoppingBadge();
+          showToast(`Do nákupu přidáno ${added} chybějících surovin.`);
+        } else if (action === 'edit-recipe') {
+          const recipe = state.recipes.find(r => r.id === btn.dataset.id);
+          if (recipe) openRecipeModal(recipe);
+        } else if (action === 'delete-recipe') {
+          const recId = btn.dataset.id;
+          askConfirm('Smazat recept?', 'Recept se odebere ze seznamu i z týdenního plánu.', () => {
+            state.recipes = state.recipes.filter(r => r.id !== recId);
+            for (let d = 0; d < 7; d++) {
+              state.plan[d] = (state.plan[d] || []).filter(item => item.recipeId !== recId);
+            }
+            saveState();
+            renderRecipes();
+            showToast('Recept byl smazán.');
+          });
+        }
+      });
+
+      // Formulář receptu + hromadné vložení ze schránky
+      document.getElementById('toggleBulkPasteBtn').addEventListener('click', () => {
+        document.getElementById('bulkPasteBox').classList.toggle('hidden');
+      });
+
+      document.getElementById('parseBulkPasteBtn').addEventListener('click', () => {
+        const raw = document.getElementById('bulkPasteTextarea').value;
+        const parsed = parseIngredientsText(raw);
+        if (parsed.length === 0) {
+          showToast('Vlož nejdřív seznam surovin po řádcích.');
+          return;
+        }
+        const container = document.getElementById('draftIngredientsContainer');
+        if (container.children.length === 1 && !container.querySelector('.draft-ing-name').value.trim()) {
+          container.innerHTML = '';
+        }
+        parsed.forEach(ing => addDraftIngredientRow(ing));
+        document.getElementById('bulkPasteTextarea').value = '';
+        document.getElementById('bulkPasteBox').classList.add('hidden');
+        showToast(`Rozpoznáno a přidáno ${parsed.length} surovin.`);
+      });
+
+      document.getElementById('addDraftIngredientBtn').addEventListener('click', () => {
+        addDraftIngredientRow({ name: '', amount: 1, unit: 'ks' });
+      });
+
+      document.getElementById('recipeForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = capitalizeFirst(document.getElementById('recipeNameInput').value);
+        if (!name) return;
+
+        const note = document.getElementById('recipeNoteInput').value.trim();
+        const prepTime = document.getElementById('recipePrepTimeInput').value.trim() || '25 min';
+        const servings = Math.max(1, Number(document.getElementById('recipeServingsInput').value) || 2);
+        const steps = document.getElementById('recipeStepsInput').value
+          .split(/\r?\n/)
+          .map(s => s.trim())
+          .filter(Boolean);
+
+        const ingredients = [];
+        document.querySelectorAll('.draft-ing-row').forEach(row => {
+          const ingName = capitalizeFirst(row.querySelector('.draft-ing-name').value);
+          const ingAmt = Math.round((Number(row.querySelector('.draft-ing-amount').value) || 1) * 100) / 100;
+          const ingUnit = row.querySelector('.draft-ing-unit').value;
+          if (ingName && ingAmt > 0) {
+            ingredients.push({ name: ingName, amount: ingAmt, unit: ingUnit });
+          }
+        });
+
+        if (ingredients.length === 0) {
+          showToast('Přidej alespoň jednu surovinu.');
+          return;
+        }
+
+        if (editingRecipeId) {
+          const existing = state.recipes.find(r => r.id === editingRecipeId);
+          if (existing) {
+            existing.name = name;
+            existing.note = note;
+            existing.prepTime = prepTime;
+            existing.servings = servings;
+            existing.steps = steps;
+            existing.ingredients = ingredients;
+            delete existing.aiNutritionPerServing;
+          }
+        } else {
+          const newId = uid('rec');
+          state.recipes.unshift({ id: newId, name, note, prepTime, servings, steps, ingredients });
+          openRecipeIds.add(newId);
+        }
+
+        saveState();
+        closeModal('recipeFormModal');
+        renderRecipes();
+        showToast(editingRecipeId ? 'Recept byl upraven.' : 'Nový recept uložen.');
+      });
+
+      /* --- DOMA (UVAŘENÉ ZÁSOBY, SJEDNOCENÍ, SPIŽÍRNA) --- */
+      document.getElementById('toggleAddCookedBatchBtn').addEventListener('click', () => {
+        document.getElementById('addCookedBatchForm').classList.toggle('hidden');
+      });
+
+      document.getElementById('addCookedBatchForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('cookedBatchNameInput').value.trim();
+        const portions = Number(document.getElementById('cookedBatchPortionsInput').value) || 1;
+        if (!name) return;
+        addOrMergeCookedBatch(name, portions);
+        saveState();
+        document.getElementById('cookedBatchNameInput').value = '';
+        document.getElementById('addCookedBatchForm').classList.add('hidden');
+        renderCookedBatches();
+        showToast(`🍲 Uloženo do zásob: ${capitalizeFirst(name)} (${formatAmount(portions)} porcí).`);
+      });
+
+      document.getElementById('cookedBatchesList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-batch-action]');
+        if (!btn) return;
+        const action = btn.dataset.batchAction;
+        const id = btn.dataset.batchId;
+        const batch = state.cookedBatches.find(b => b.id === id);
+        if (!batch) return;
+
+        if (action === 'eat-one') {
+          batch.portions = Math.max(0, Math.round((Number(batch.portions) - 1) * 10) / 10);
+          const perServ = batch.perServingNutrients || calculateIngredientNutrients(batch.name, 250, 'g');
+          state.foodLog.unshift({
+            id: uid('fl'),
+            date: getLocalDateKey(0),
+            mealTag: '',
+            title: batch.name,
+            nutrients: addNutrients(emptyNutrients(), perServ, 1)
+          });
+          if (batch.portions <= 0) {
+            state.cookedBatches = state.cookedBatches.filter(b => b.id !== id);
+          }
+          saveState();
+          renderCookedBatches();
+          showToast(`✓ Snědena 1 porce (${batch.name}) a zapsána do dneška.`);
+        } else if (action === 'plus-one') {
+          batch.portions = Math.round((Number(batch.portions) + 1) * 10) / 10;
+          saveState();
+          renderCookedBatches();
+        } else if (action === 'delete') {
+          state.cookedBatches = state.cookedBatches.filter(b => b.id !== id);
+          saveState();
+          renderCookedBatches();
+        }
+      });
+
+      document.getElementById('openUnificationModalBtn').addEventListener('click', () => {
+        renderUnificationGroups();
+        openModal('unificationModal');
+      });
+
+      document.getElementById('unificationForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const canon = capitalizeFirst(document.getElementById('unificationCanonicalInput').value);
+        const aliases = document.getElementById('unificationAliasesInput').value
+          .split(',')
+          .map(s => s.trim().toLowerCase())
+          .filter(Boolean);
+        if (!canon || aliases.length === 0) return;
+
+        const existing = state.unificationGroups.find(g => cleanRawPhrase(g.canonical) === cleanRawPhrase(canon));
+        if (existing) {
+          existing.aliases = [...new Set([...(existing.aliases || []), canon.toLowerCase(), ...aliases])];
+        } else {
+          state.unificationGroups.unshift({
+            id: uid('ug'),
+            canonical: canon,
+            aliases: [...new Set([canon.toLowerCase(), ...aliases])]
+          });
+        }
+
+        saveState();
+        document.getElementById('unificationCanonicalInput').value = '';
+        document.getElementById('unificationAliasesInput').value = '';
+        renderUnificationGroups();
+        renderPantry();
+        showToast(`Skupina „${canon}“ uložena.`);
+      });
+
+      document.getElementById('unificationGroupsList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-delete-unification]');
+        if (!btn) return;
+        const id = btn.dataset.deleteUnification;
+        state.unificationGroups = state.unificationGroups.filter(g => g.id !== id);
+        saveState();
+        renderUnificationGroups();
+        renderPantry();
+      });
+
+      document.getElementById('resetUnificationDefaultsBtn').addEventListener('click', () => {
+        state.unificationGroups = getDefaultUnificationGroups();
+        saveState();
+        renderUnificationGroups();
+        renderPantry();
+        showToast('Výchozí skupiny sjednocení obnoveny.');
+      });
+
+      const pantryNameInp = document.getElementById('pantryNameInput');
+      const pantryUnitSel = document.getElementById('pantryUnitSelect');
+      const pantryLocSel  = document.getElementById('pantryLocationSelect');
+      populateUnitSelect(pantryUnitSel, 'g');
+      attachAutocomplete(pantryNameInp, (picked) => {
+        pantryNameInp.value = picked.name;
+        if (picked.unit && UNITS.includes(picked.unit)) pantryUnitSel.value = picked.unit;
+        if (picked.location && LOCATION_LABELS[picked.location]) pantryLocSel.value = picked.location;
+        closeAutocomplete();
+      });
+
+      document.getElementById('pantryForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = pantryNameInp.value.trim();
+        if (!name) return;
+        const amount = Number(document.getElementById('pantryAmountInput').value) || 1;
+        addOrMergePantryItem(name, amount, pantryUnitSel.value, pantryLocSel.value);
+        saveState();
+        pantryNameInp.value = '';
+        document.getElementById('pantryAmountInput').value = '1';
+        renderPantry();
+        showToast(`Přidáno domů: ${capitalizeFirst(name)}.`);
+      });
+
+      document.getElementById('toggleQuickStaplesBtn').addEventListener('click', () => {
+        document.getElementById('quickStaplesBox').classList.toggle('hidden');
+        document.getElementById('quickStaplesArrow').classList.toggle('rotate-180');
+      });
+
+      document.getElementById('quickStaplesGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-quick-staple]');
+        if (!btn) return;
+        const st = QUICK_STAPLES[Number(btn.dataset.quickStaple)];
+        if (!st) return;
+        addOrMergePantryItem(st.name, st.amount, st.unit, st.location);
+        saveState();
+        renderPantry();
+        showToast(`+ ${st.name} (${formatAmount(st.amount)} ${st.unit}) přidáno domů.`);
+      });
+
+      document.getElementById('pantrySearchInput').addEventListener('input', renderPantry);
+
+      document.querySelectorAll('.pantry-loc-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          pantryLocationFilter = btn.dataset.pantryLoc;
+          document.querySelectorAll('.pantry-loc-btn').forEach(b => {
+            const active = b.dataset.pantryLoc === pantryLocationFilter;
+            b.className = `pantry-loc-btn px-3.5 py-2 rounded-xl text-xs shrink-0 transition ${
+              active ? 'font-semibold bg-sage text-white shadow-sm' : 'font-medium bg-white text-sage-ink border border-sage-border'
+            }`;
+          });
+          renderPantry();
+        });
+      });
+
+      document.getElementById('pantryList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-pantry-action]');
+        if (!btn) return;
+        const action = btn.dataset.pantryAction;
+        const id = btn.dataset.id;
+        const item = state.pantry.find(i => i.id === id);
+        if (!item) return;
+
+        const step = getStepForUnit(item.unit);
+        if (action === 'inc') {
+          item.amount = Math.round((Number(item.amount) + step) * 100) / 100;
+        } else if (action === 'dec') {
+          const next = Math.round((Number(item.amount) - step) * 100) / 100;
+          if (next <= 0) state.pantry = state.pantry.filter(i => i.id !== id);
+          else item.amount = next;
+        } else if (action === 'delete') {
+          state.pantry = state.pantry.filter(i => i.id !== id);
+        }
+        saveState();
+        renderPantry();
+      });
+
+      /* --- NASTAVENÍ AI & AI KUCHAŘ --- */
+      document.getElementById('toggleAiKeyVisibilityBtn').addEventListener('click', () => {
+        const inp = document.getElementById('aiApiKeyInput');
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      });
+
+      document.getElementById('aiSettingsForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const val = (document.getElementById('aiApiKeyInput').value || '').trim();
+        if (!val) {
+          showToast('Vlož prosím svůj Gemini API klíč.');
+          return;
+        }
+        localStorage.setItem(AI_KEY_STORAGE, val);
+        updateAiKeyUI();
+        showToast('Gemini API klíč byl uložen do mobilu.');
+      });
+
+      document.getElementById('testAiKeyBtn').addEventListener('click', testStoredGeminiKey);
+
+      document.getElementById('deleteAiKeyBtn').addEventListener('click', () => {
+        localStorage.removeItem(AI_KEY_STORAGE);
+        document.getElementById('aiApiKeyInput').value = '';
+        document.getElementById('aiKeyTestResult').classList.add('hidden');
+        updateAiKeyUI();
+        showToast('AI klíč byl z paměti smazán.');
+      });
+
+      document.getElementById('openAiChefFromRecipesBtn').addEventListener('click', openAiChefModal);
+      document.getElementById('openAiChefFromPantryBtn').addEventListener('click', openAiChefModal);
+
+      document.getElementById('aiChefOpenSettingsShortcut').addEventListener('click', () => {
+        document.getElementById('aiApiKeyInput').value = getStoredGeminiKey();
+        updateAiKeyUI();
+        openModal('aiSettingsModal');
+      });
+
+      document.getElementById('aiErrorOpenSettingsBtn').addEventListener('click', () => {
+        document.getElementById('aiApiKeyInput').value = getStoredGeminiKey();
+        updateAiKeyUI();
+        openModal('aiSettingsModal');
+      });
+
+      document.getElementById('aiErrorRetryBtn').addEventListener('click', () => generateAiChefRecipes(false));
+
+      document.querySelectorAll('.ai-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedAiMode = btn.dataset.aiMode;
+          document.querySelectorAll('.ai-mode-btn').forEach(b => {
+            const active = b.dataset.aiMode === selectedAiMode;
+            b.className = `ai-mode-btn py-2.5 px-2.5 rounded-lg text-xs transition leading-tight ${
+              active ? 'bg-white text-sage-ink font-semibold shadow-sm' : 'text-sage-muted font-medium'
+            }`;
+          });
+        });
+      });
+
+      document.querySelectorAll('.ai-pref-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          selectedAiPreference = chip.dataset.aiPref;
+          document.querySelectorAll('.ai-pref-chip').forEach(c => {
+            const active = c.dataset.aiPref === selectedAiPreference;
+            c.className = `ai-pref-chip px-3 py-1.5 rounded-full text-xs transition ${
+              active ? 'font-semibold bg-sage text-white shadow-sm' : 'font-medium bg-sage-bg text-sage-ink border border-sage-border'
+            }`;
+          });
+        });
+      });
+
+      document.getElementById('aiServingsMinus').addEventListener('click', () => {
+        aiServingsCount = Math.max(1, aiServingsCount - 1);
+        document.getElementById('aiServingsValue').textContent = String(aiServingsCount);
+      });
+
+      document.getElementById('aiServingsPlus').addEventListener('click', () => {
+        aiServingsCount = Math.min(12, aiServingsCount + 1);
+        document.getElementById('aiServingsValue').textContent = String(aiServingsCount);
+      });
+
+      document.getElementById('aiGenerateBtn').addEventListener('click', () => generateAiChefRecipes(false));
+      document.getElementById('aiMoreIdeasBtn').addEventListener('click', () => generateAiChefRecipes(true));
+
+      document.getElementById('aiResultsContainer').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-ai-action]');
+        if (!btn) return;
+        const action = btn.dataset.aiAction;
+
+        if (action === 'open-swap') {
+          activeSwapTarget = btn.dataset.swapKey;
+          renderAiChefResults();
+        } else if (action === 'cancel-swap') {
+          activeSwapTarget = null;
+          closeAutocomplete();
+          renderAiChefResults();
+        } else if (action === 'apply-swap') {
+          const rIdx = Number(btn.dataset.aiIdx);
+          const iIdx = Number(btn.dataset.ingIdx);
+          const inp = document.querySelector(`[data-swap-input="ai:${rIdx}:${iIdx}"]`);
+          const newName = capitalizeFirst(inp?.value || '');
+          if (lastAiSuggestions[rIdx]?.ingredients?.[iIdx] && newName) {
+            lastAiSuggestions[rIdx].ingredients[iIdx].name = newName;
+            activeSwapTarget = null;
+            closeAutocomplete();
+            renderAiChefResults();
+            showToast(`Vyměněno za: ${newName}`);
+          }
+        } else if (action === 'save-recipe') {
+          const rec = lastAiSuggestions[Number(btn.dataset.aiIdx)];
+          if (!rec) return;
+          const newId = uid('rec');
+          state.recipes.unshift({
+            id: newId,
+            name: rec.name,
+            prepTime: rec.prepTime || '25 min',
+            servings: rec.servings || aiServingsCount,
+            note: rec.note || '',
+            steps: [...(rec.steps || [])],
+            ingredients: (rec.ingredients || []).map(i => ({ ...i }))
+          });
+          openRecipeIds.add(newId);
+          saveState();
+          if (activeTab === 'recipes') renderRecipes();
+          showToast(`✓ Uloženo do receptů: ${rec.name}`);
+        } else if (action === 'cook-batch') {
+          openCookBatchModalForAi(Number(btn.dataset.aiIdx));
+        } else if (action === 'add-missing') {
+          const rec = lastAiSuggestions[Number(btn.dataset.aiIdx)];
+          if (!rec) return;
+          let added = 0;
+          (rec.ingredients || []).forEach(ing => {
+            const m = evaluateIngredientMatch(ing, state.pantry);
+            if (m.status === 'missing') {
+              addOrMergeShoppingItem(ing.name, ing.amount, ing.unit);
+              added++;
+            } else if (m.status === 'partial' && m.missingAmount > 0) {
+              addOrMergeShoppingItem(ing.name, m.missingAmount, ing.unit);
+              added++;
+            }
+          });
+          saveState();
+          if (activeTab === 'shopping') renderShopping();
+          else updateShoppingBadge();
+          showToast(`Do nákupu přidáno ${added} chybějících surovin.`);
+        }
+      });
+
+      /* --- VÝŽIVOVÝ PŘEHLED A PROFIL CÍLŮ --- */
+      document.getElementById('toggleNutritionEnabledCheckbox').addEventListener('change', (e) => {
+        state.nutritionProfile.enabled = e.target.checked;
+        saveState();
+        updateNutritionHeaderIndicator();
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        if (activeTab === 'plan') renderPlan();
+        if (activeTab === 'recipes') renderRecipes();
+      });
+
+      document.getElementById('enableNutritionQuickBtn').addEventListener('click', () => {
+        state.nutritionProfile.enabled = true;
+        saveState();
+        updateNutritionHeaderIndicator();
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        if (activeTab === 'plan') renderPlan();
+        if (activeTab === 'recipes') renderRecipes();
+      });
+
+      document.getElementById('nutrPrevDayBtn').addEventListener('click', () => {
+        const [y, m, d] = selectedNutritionDate.split('-').map(Number);
+        const dt = new Date(y, (m || 1) - 1, (d || 1) - 1);
+        selectedNutritionDate = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        renderNutritionModal();
+      });
+
+      document.getElementById('nutrNextDayBtn').addEventListener('click', () => {
+        if (selectedNutritionDate >= getLocalDateKey(0)) return;
+        const [y, m, d] = selectedNutritionDate.split('-').map(Number);
+        const dt = new Date(y, (m || 1) - 1, (d || 1) + 1);
+        selectedNutritionDate = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        renderNutritionModal();
+      });
+
+      document.querySelectorAll('.nutr-log-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          selectedNutritionLogMode = tab.dataset.logMode;
+          document.querySelectorAll('.nutr-log-tab').forEach(t => {
+            const active = t.dataset.logMode === selectedNutritionLogMode;
+            t.className = `nutr-log-tab py-2 px-2 rounded-lg text-xs transition ${
+              active ? 'bg-white text-sage-ink font-semibold shadow-sm' : 'text-sage-muted font-medium'
+            }`;
+          });
+          document.getElementById('logPanel-ai').classList.toggle('hidden', selectedNutritionLogMode !== 'ai');
+          document.getElementById('logPanel-recipe').classList.toggle('hidden', selectedNutritionLogMode !== 'recipe');
+          document.getElementById('logPanel-ingredient').classList.toggle('hidden', selectedNutritionLogMode !== 'ingredient');
+        });
+      });
+
+      document.querySelectorAll('.nutr-meal-tag').forEach(chip => {
+        chip.addEventListener('click', () => {
+          selectedMealTag = selectedMealTag === chip.dataset.mealTag ? '' : chip.dataset.mealTag;
+          document.querySelectorAll('.nutr-meal-tag').forEach(c => {
+            const active = c.dataset.mealTag === selectedMealTag;
+            c.className = `nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] transition ${
+              active ? 'font-semibold bg-sage text-white' : 'font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint'
+            }`;
+          });
+        });
+      });
+
+      document.getElementById('logFromAiSentenceBtn').addEventListener('click', logMealFromAiSentence);
+      document.getElementById('nutrAiSentenceInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          logMealFromAiSentence();
+        }
+      });
+
+      document.getElementById('logFromRecipeBtn').addEventListener('click', () => {
+        const recId = document.getElementById('nutrRecipeSelect').value;
+        const portion = Number(document.getElementById('nutrRecipePortionSelect').value) || 1;
+        const recipe = state.recipes.find(r => r.id === recId);
+        if (!recipe) return;
+
+        const perServ = calculateRecipeNutrientsPerServing(recipe);
+        const nutrients = addNutrients(emptyNutrients(), perServ, portion);
+        state.foodLog.unshift({
+          id: uid('fl'),
+          date: selectedNutritionDate,
+          mealTag: selectedMealTag || '',
+          title: `${recipe.name}${portion !== 1 ? ` (${formatAmount(portion)}×)` : ''}`,
+          nutrients
+        });
+        saveState();
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        showToast(`✓ Zapsáno: ${recipe.name} (${formatInt(nutrients.kcal)} kcal)`);
+      });
+
+      const nutrIngNameInp = document.getElementById('nutrIngNameInput');
+      const nutrIngUnitSel = document.getElementById('nutrIngUnitSelect');
+      populateUnitSelect(nutrIngUnitSel, 'g');
+      attachAutocomplete(nutrIngNameInp, (picked) => {
+        nutrIngNameInp.value = picked.name;
+        if (picked.unit && UNITS.includes(picked.unit)) nutrIngUnitSel.value = picked.unit;
+        closeAutocomplete();
+      });
+
+      document.getElementById('logSingleIngredientForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = capitalizeFirst(nutrIngNameInp.value);
+        if (!name) return;
+        const amount = Number(document.getElementById('nutrIngAmountInput').value) || 100;
+        const unit = nutrIngUnitSel.value;
+        const nutrients = calculateIngredientNutrients(name, amount, unit);
+
+        state.foodLog.unshift({
+          id: uid('fl'),
+          date: selectedNutritionDate,
+          mealTag: selectedMealTag || '',
+          title: `${name} (${formatAmount(amount)} ${unit})`,
+          nutrients
+        });
+        saveState();
+        nutrIngNameInp.value = '';
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        showToast(`✓ Zapsáno: ${name} (${formatInt(nutrients.kcal)} kcal)`);
+      });
+
+      document.getElementById('nutrMicroGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-micro-key]');
+        if (!btn) return;
+        const key = btn.dataset.microKey;
+        selectedMicroDetailKey = selectedMicroDetailKey === key ? null : key;
+        renderNutritionModal();
+      });
+
+      document.getElementById('closeNutrMicroDetailBtn').addEventListener('click', () => {
+        selectedMicroDetailKey = null;
+        renderNutritionModal();
+      });
+
+      document.getElementById('nutrDayEntriesList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-delete-food-log]');
+        if (!btn) return;
+        const id = btn.dataset.deleteFoodLog;
+        state.foodLog = state.foodLog.filter(entry => entry.id !== id);
+        saveState();
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+      });
+
+      /* --- PROFIL A CÍLE VÝŽIVY + ZÁLOHA --- */
+      document.getElementById('openNutritionProfileBtn').addEventListener('click', openNutritionProfileModal);
+
+      document.querySelectorAll('.prof-goal-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          draftGoalMode = btn.dataset.goalMode;
+          syncProfileGoalButtonsUI();
+        });
+      });
+
+      document.getElementById('calculateRecommendedTargetsBtn').addEventListener('click', () => {
+        const rec = computeRecommendedProfileTargets({
+          goalMode: draftGoalMode,
+          sex: document.getElementById('profSexSelect').value,
+          age: document.getElementById('profAgeInput').value,
+          weight: document.getElementById('profWeightInput').value,
+          height: document.getElementById('profHeightInput').value,
+          activity: document.getElementById('profActivitySelect').value
+        });
+        fillProfileTargetInputs(rec);
+        showToast('Doporučené cíle byly vypočítány (můžeš je ještě upravit).');
+      });
+
+      document.getElementById('preset2500GainBtn').addEventListener('click', () => {
+        draftGoalMode = 'gain';
+        syncProfileGoalButtonsUI();
+        fillProfileTargetInputs(getDefaultNutritionProfile().targets);
+        showToast('Předvolba 2 500 kcal pro zdravé nabírání nastavena.');
+      });
+
+      document.getElementById('nutritionProfileForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nextTargets = {
+          kcal: Math.max(800, Number(document.getElementById('targetKcalInput').value) || 2500),
+          protein: Math.max(20, Number(document.getElementById('targetProteinInput').value) || 120),
+          carbs: Math.max(20, Number(document.getElementById('targetCarbsInput').value) || 310),
+          fat: Math.max(15, Number(document.getElementById('targetFatInput').value) || 80),
+          fiber: Math.max(5, Number(document.getElementById('targetFiberInput').value) || 30)
+        };
+        MICRONUTRIENT_META.forEach(m => {
+          const inp = document.getElementById(`microTarget_${m.key}`);
+          nextTargets[m.key] = Math.max(0.1, Number(inp?.value) || m.defaultFemale);
+        });
+
+        state.nutritionProfile = {
+          enabled: document.getElementById('profEnabledCheckbox').checked,
+          configured: true,
+          goalMode: draftGoalMode,
+          sex: document.getElementById('profSexSelect').value,
+          age: Number(document.getElementById('profAgeInput').value) || 25,
+          weight: Number(document.getElementById('profWeightInput').value) || 60,
+          height: Number(document.getElementById('profHeightInput').value) || 168,
+          activity: Number(document.getElementById('profActivitySelect').value) || 1.6,
+          targets: nextTargets
+        };
+
+        saveState();
+        updateNutritionHeaderIndicator();
+        closeModal('nutritionProfileModal');
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        if (activeTab === 'plan') renderPlan();
+        if (activeTab === 'recipes') renderRecipes();
+        showToast('Osobní profil a cíle uloženy.');
+      });
+
+      document.getElementById('exportBackupBtn').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nakup-plan-zaloha-${getLocalDateKey(0)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Záloha dat byla stažena.');
+      });
+
+      document.getElementById('importBackupInput').addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const imported = JSON.parse(String(reader.result || '{}'));
+            if (!imported || typeof imported !== 'object' || !Array.isArray(imported.recipes)) {
+              throw new Error('Neplatný soubor zálohy.');
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
+            loadState();
+            updateNutritionHeaderIndicator();
+            closeModal('nutritionProfileModal');
+            closeModal('nutritionModal');
+            switchTab(activeTab);
+            showToast('✓ Data byla úspěšně obnovena ze zálohy.');
+          } catch {
+            showToast('Soubor se nepodařilo načíst — zkontroluj, že jde o platnou zálohu.');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      });
+
+      /* --- MODÁLY „✓ SNĚDENO“ A „🍲 UVAŘIT DO ZÁSOBY“ --- */
+      document.querySelectorAll('.quick-eat-portion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          quickEatPortion = Number(btn.dataset.eatPortion) || 1;
+          updateQuickEatPreview();
+        });
+      });
+
+      document.getElementById('confirmQuickEatBtn').addEventListener('click', () => {
+        const recipe = state.recipes.find(r => r.id === quickEatRecipeId);
+        if (!recipe) return;
+
+        const perServ = calculateRecipeNutrientsPerServing(recipe);
+        const nutrients = addNutrients(emptyNutrients(), perServ, quickEatPortion);
+        state.foodLog.unshift({
+          id: uid('fl'),
+          date: getLocalDateKey(0),
+          mealTag: '',
+          title: `${recipe.name}${quickEatPortion !== 1 ? ` (${formatAmount(quickEatPortion)}×)` : ''}`,
+          nutrients
+        });
+
+        if (document.getElementById('quickEatDeductPantryCheckbox').checked) {
+          deductRecipeIngredientsFromPantry(recipe, quickEatPortion);
+        }
+
+        saveState();
+        closeModal('quickEatModal');
+        if (activeTab === 'recipes') renderRecipes();
+        if (activeTab === 'pantry') renderPantry();
+        if (activeTab === 'shopping') renderShopping();
+        showToast(`✓ Zapsáno do dneška: ${recipe.name}`);
+      });
+
+      document.querySelectorAll('.cook-batch-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = Number(btn.dataset.batchPreset) || 4;
+          document.getElementById('cookBatchCustomPortionsInput').value = val;
+          syncCookBatchPresetUI(val);
+        });
+      });
+
+      document.getElementById('cookBatchCustomPortionsInput').addEventListener('input', (e) => {
+        syncCookBatchPresetUI(Number(e.target.value));
+      });
+
+      document.getElementById('confirmCookBatchBtn').addEventListener('click', () => {
+        const portions = Math.max(0.5, Number(document.getElementById('cookBatchCustomPortionsInput').value) || 4);
+        const deduct = document.getElementById('cookBatchDeductPantryCheckbox').checked;
+
+        if (cookBatchRecipeId) {
+          const recipe = state.recipes.find(r => r.id === cookBatchRecipeId);
+          if (!recipe) return;
+          const perServ = calculateRecipeNutrientsPerServing(recipe);
+          addOrMergeCookedBatch(recipe.name, portions, recipe.id, perServ);
+          if (deduct) deductRecipeIngredientsFromPantry(recipe, portions);
+          saveState();
+          closeModal('cookBatchModal');
+          if (activeTab === 'pantry') renderPantry();
+          if (activeTab === 'recipes') renderRecipes();
+          showToast(`🍲 Uloženo do zásob Doma: ${recipe.name} (${formatAmount(portions)} porcí).`);
+        } else if (cookBatchAiIndex !== null) {
+          const rec = lastAiSuggestions[cookBatchAiIndex];
+          if (!rec) return;
+          const perServ = calculateRecipeNutrientsPerServing(rec);
+          addOrMergeCookedBatch(rec.name, portions, null, perServ);
+          if (deduct) deductRecipeIngredientsFromPantry(rec, portions);
+          saveState();
+          closeModal('cookBatchModal');
+          if (activeTab === 'pantry') renderPantry();
+          showToast(`🍲 Uloženo do zásob Doma: ${rec.name} (${formatAmount(portions)} porcí).`);
+        }
+      });
+    }
+
+    // Spuštění aplikace po načtení stránky
+    loadState();
+    updateAiKeyUI();
+    updateNutritionHeaderIndicator();
+    renderQuickStaples();
+    initEvents();
+    switchTab('shopping');
+  </script>
+</body>
+</html>
