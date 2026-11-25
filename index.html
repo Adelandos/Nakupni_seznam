@@ -31,24 +31,24 @@
           },
           colors: {
             sage: {
-              bg:     '#f6f8f6', /* Jemné neutrální pozadí */
-              tint:   '#e5ece7', /* Světlý šalvějový podklad pro štítky */
-              border: '#d7e2da', /* Nenápadné rámečky */
-              soft:   '#9eb5a3', /* Měkký zvýrazňovací okraj */
-              DEFAULT:'#68826e', /* Hlavní klidná šalvějová */
-              dark:   '#526b58', /* Tmavší šalvějová pro hover/text */
-              ink:    '#263329', /* Hlavní barva textu */
-              muted:  '#5c6f60'  /* Doplňkový text */
+              bg:     '#f6f8f6',
+              tint:   '#e5ece7',
+              border: '#d7e2da',
+              soft:   '#9eb5a3',
+              DEFAULT:'#68826e',
+              dark:   '#526b58',
+              ink:    '#263329',
+              muted:  '#5c6f60'
             },
             ochre: {
-              bg:      '#fdf6ea', /* Jemný podklad pro částečnou shodu / doplnění */
+              bg:      '#fdf6ea',
               border:  '#eedbb9',
-              DEFAULT: '#c98a3a'  /* Teplá okrová / jantarová */
+              DEFAULT: '#c98a3a'
             },
             danger: {
-              bg:      '#fbeded', /* Jemný podklad jen pro mazání */
+              bg:      '#fbeded',
               border:  '#f0d0d0',
-              DEFAULT: '#b85c5c', /* Tlumená červená pro mazání */
+              DEFAULT: '#b85c5c',
               dark:    '#9c4747'
             }
           }
@@ -78,7 +78,7 @@
   <!-- Hlavní kontejner aplikace optimalizovaný pro mobil i desktop -->
   <div class="w-full max-w-[540px] min-h-screen flex flex-col bg-sage-bg relative shadow-[0_0_40px_rgba(38,51,41,0.05)]">
 
-    <!-- Horní fixní hlavička s názvem aktivní záložky a 3 ikonkami vpravo -->
+    <!-- Horní fixní hlavička -->
     <header class="sticky top-0 z-20 bg-sage-bg/95 backdrop-blur-md border-b border-sage-border px-4 sm:px-5 pt-4 pb-3 flex items-center justify-between gap-2">
       <div class="min-w-0">
         <h1 id="headerTitle" class="text-xl font-bold tracking-tight text-sage-ink truncate">Nákupní seznam</h1>
@@ -90,7 +90,7 @@
         <button
           type="button"
           id="openNutritionBtn"
-          title="Výživa, bílkoviny a vitamíny"
+          title="Výživa, bílkoviny a vitamíny (lze vypnout)"
           aria-label="Výživa a živiny"
           class="relative w-10 h-10 rounded-xl bg-white border border-sage-border text-sage hover:bg-sage-tint active:scale-95 transition flex items-center justify-center shadow-sm"
         >
@@ -148,7 +148,7 @@
           </div>
         </div>
 
-        <!-- Volitelná karta: Tipy podle 7denního přehledu živin -->
+        <!-- Volitelná karta: Tipy podle 7denního přehledu živin (jen když je výživa zapnutá) -->
         <div id="shoppingNutrientTipsCard" class="hidden bg-white rounded-2xl border border-sage-border shadow-sm mb-3.5 overflow-hidden">
           <button
             type="button"
@@ -259,7 +259,7 @@
           <label class="flex items-center justify-between gap-3 cursor-pointer select-none">
             <div>
               <div class="text-sm font-semibold text-sage-ink">Odečíst suroviny, které už mám doma</div>
-              <div class="text-xs text-sage-muted mt-0.5">Sečte recepty za celý týden a odečte sjednocené zásoby.</div>
+              <div class="text-xs text-sage-muted mt-0.5">Vícedenní jídlo započítá jen jednou, zásoby odečte a koření přeskočí.</div>
             </div>
             <input
               type="checkbox"
@@ -294,7 +294,7 @@
       </section>
 
       <!-- ======================================================================
-           ZÁLOŽKA 3: RECEPTY (S živým vyhodnocením sjednocených surovin doma)
+           ZÁLOŽKA 3: RECEPTY (S živým vyhodnocením sjednocených surovin + výměnou ⇄)
            ====================================================================== -->
       <section id="tab-recipes" class="tab-panel hidden tab-fade">
 
@@ -310,7 +310,7 @@
               <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Gemini</span>
             </div>
             <p class="text-xs text-white/85 mt-1 leading-snug">
-              Vymyslí jídla přímo z toho, co máš doma, nebo přesně podle tvých cílů a chybějících živin.
+              Vymyslí kompletní jídla i s přílohou podle tvých chutí, zásob doma nebo cílů.
             </p>
           </div>
           <span class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
@@ -363,7 +363,7 @@
       </section>
 
       <!-- ======================================================================
-           ZÁLOŽKA 4: DOMA („Co mám doma“ + správa sjednocování surovin)
+           ZÁLOŽKA 4: DOMA („Hotová jídla do zásoby“ + „Co mám doma“ + sjednocení)
            ====================================================================== -->
       <section id="tab-pantry" class="tab-panel hidden tab-fade">
 
@@ -379,6 +379,58 @@
           <span class="text-xs font-medium bg-white/20 px-2.5 py-1 rounded-full">Spustit AI Kuchaře →</span>
         </button>
 
+        <!-- KARTA: HOTOVÁ JÍDLA / UVAŘENO DO ZÁSOBY (např. Vývar na 10 porcí, zbytky z vaření) -->
+        <div class="bg-white rounded-2xl p-4 border border-sage-soft shadow-sm mb-3.5 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h2 class="text-sm font-bold text-sage-ink flex items-center gap-1.5">
+                <span>🍲 Hotová jídla / Uvařeno do zásoby</span>
+              </h2>
+              <p class="text-[11px] text-sage-muted mt-0.5">
+                Uvařené porce v lednici nebo mrazáku (např. vývar na 10 porcí).
+              </p>
+            </div>
+            <button
+              type="button"
+              id="toggleAddCookedBatchBtn"
+              class="px-2.5 py-1.5 rounded-xl bg-sage-tint hover:bg-sage text-sage-dark hover:text-white text-xs font-semibold transition shrink-0"
+            >
+              + Dávka
+            </button>
+          </div>
+
+          <!-- Rychlé přidání vlastní uvařené dávky -->
+          <form id="addCookedBatchForm" class="hidden bg-sage-bg rounded-xl p-2.5 border border-sage-border space-y-2">
+            <div class="flex gap-2">
+              <input
+                type="text"
+                id="cookedBatchNameInput"
+                required
+                placeholder="Co jsi uvařila? (např. Vývar, Guláš...)"
+                class="flex-1 min-w-0 h-10 px-3 rounded-xl bg-white border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:border-sage"
+              >
+              <input
+                type="number"
+                id="cookedBatchPortionsInput"
+                min="1"
+                max="50"
+                step="0.5"
+                value="4"
+                aria-label="Počet porcí"
+                class="w-16 h-10 px-2.5 rounded-xl bg-white border border-sage-border text-xs sm:text-sm text-sage-ink text-center focus:outline-none focus:border-sage"
+              >
+              <button
+                type="submit"
+                class="h-10 px-3.5 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs font-semibold transition shrink-0"
+              >
+                Uložit
+              </button>
+            </div>
+          </form>
+
+          <div id="cookedBatchesList" class="space-y-2"></div>
+        </div>
+
         <!-- Horní lišta s rychlým vstupem do nastavení Sjednocení surovin -->
         <button
           type="button"
@@ -387,7 +439,7 @@
         >
           <div class="min-w-0">
             <div class="text-sm font-semibold text-sage-ink">Sjednocení surovin</div>
-            <div class="text-xs text-sage-muted mt-0.5 truncate">Např. Mražený hrášek = Hrášek, Vajíčka = Vejce</div>
+            <div class="text-xs text-sage-muted mt-0.5 truncate">Koření se počítá automaticky • zde upravíš dvojice surovin</div>
           </div>
           <span id="unificationCountBadge" class="px-2.5 py-1 rounded-full bg-sage-tint text-sage-dark text-xs font-bold shrink-0">22 skupin</span>
         </button>
@@ -571,7 +623,7 @@
               id="recipeServingsInput"
               min="1"
               max="20"
-              placeholder="2"
+              placeholder="4"
               class="w-full h-10 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
             >
           </div>
@@ -635,18 +687,30 @@
   </div>
 
   <!-- ==========================================================================
-       MODÁL 2: VÝBĚR RECEPTU PRO KONKRÉTNÍ DEN V PLÁNU
+       MODÁL 2: VÝBĚR JÍDLA DO PLÁNU (Vícedenní vaření + Uvařené zásoby + Recepty)
        ========================================================================== -->
   <div id="planPickerModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center p-3">
-    <div class="w-full max-w-[440px] bg-white rounded-3xl p-5 shadow-2xl max-h-[85vh] flex flex-col border border-sage-border">
-      <div class="flex items-center justify-between mb-3">
-        <h2 id="planPickerTitle" class="text-lg font-bold text-sage-ink">Vybrat recept</h2>
+    <div class="w-full max-w-[450px] bg-white rounded-3xl p-5 shadow-2xl max-h-[88vh] flex flex-col border border-sage-border">
+      <div class="flex items-center justify-between mb-2.5">
+        <h2 id="planPickerTitle" class="text-lg font-bold text-sage-ink">Vybrat jídlo</h2>
         <button type="button" data-close-modal="planPickerModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-tint transition">✕</button>
       </div>
+
+      <!-- Volba na kolik dní se jídlo vaří (suroviny se do nákupu započítají jen 1×) -->
+      <div class="bg-sage-bg border border-sage-border rounded-2xl p-2.5 mb-2.5 flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold text-sage-ink">Naplánovat recept na:</span>
+        <div class="flex gap-1">
+          <button type="button" data-plan-span="1" class="plan-span-btn px-2.5 py-1 rounded-lg bg-sage text-white text-xs font-semibold">1 den</button>
+          <button type="button" data-plan-span="2" class="plan-span-btn px-2.5 py-1 rounded-lg bg-white border border-sage-border text-sage-ink text-xs font-medium">2 dny</button>
+          <button type="button" data-plan-span="3" class="plan-span-btn px-2.5 py-1 rounded-lg bg-white border border-sage-border text-sage-ink text-xs font-medium">3 dny</button>
+          <button type="button" data-plan-span="4" class="plan-span-btn px-2.5 py-1 rounded-lg bg-white border border-sage-border text-sage-ink text-xs font-medium">4 dny</button>
+        </div>
+      </div>
+
       <input
         type="search"
         id="planPickerSearch"
-        placeholder="Hledat v receptech..."
+        placeholder="Hledat v receptech nebo uvařených zásobách..."
         class="w-full h-10 px-3.5 mb-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
       >
       <div id="planPickerList" class="overflow-y-auto space-y-2 flex-1 pr-0.5"></div>
@@ -663,7 +727,7 @@
         <button type="button" data-close-modal="unificationModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-tint transition">✕</button>
       </div>
       <p class="text-xs text-sage-muted mb-3 leading-relaxed">
-        Všechny varianty ve stejné skupině bere aplikace jako stejnou surovinu — v receptech, plánu i při nákupu.
+        Běžné koření a sušené bylinky (paprika, kmín, kari, oregano, skořice…) bere aplikace automaticky jako základ v kuchyni. Tady si můžeš upravit sjednocování čerstvých a mražených surovin.
       </p>
 
       <form id="unificationForm" class="bg-sage-bg border border-sage-border rounded-2xl p-3 mb-3 space-y-2">
@@ -801,7 +865,7 @@
   </div>
 
   <!-- ==========================================================================
-       MODÁL 6: AI KUCHAŘ („Z toho, co mám doma“ + „Co teď potřebuji“ dle živin)
+       MODÁL 6: AI KUCHAŘ (Kompletní jídla s přílohou, „Na co máš chuť?“ + výměna ⇄)
        ========================================================================== -->
   <div id="aiChefModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[65] flex items-end sm:items-center justify-center p-2.5 sm:p-3">
     <div class="w-full max-w-[500px] bg-sage-bg rounded-3xl shadow-2xl max-h-[92vh] flex flex-col border border-sage-border overflow-hidden">
@@ -836,8 +900,21 @@
         <!-- Ovládací panel generování -->
         <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-3.5">
 
-          <!-- Přepínač 2 hlavních režimů -->
+          <!-- Na co máš chuť? (doladí přílohu i suroviny ve 3 variantách) -->
           <div>
+            <label for="aiWishInput" class="block text-xs font-bold text-sage-ink mb-1">
+              Na co máš chuť? <span class="font-normal text-sage-muted">(volitelné — automaticky doladí přílohu)</span>
+            </label>
+            <input
+              type="text"
+              id="aiWishInput"
+              placeholder="Např. trhané kuřecí s BBQ, krémové těstoviny, něco s lososem..."
+              class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
+            >
+          </div>
+
+          <!-- Přepínač 2 hlavních režimů -->
+          <div id="aiModeSelectorWrap">
             <div class="text-xs font-semibold text-sage-ink mb-1.5">Režim vaření</div>
             <div class="grid grid-cols-2 gap-1.5 bg-sage-tint p-1 rounded-xl border border-sage-border">
               <button
@@ -860,7 +937,7 @@
 
           <!-- Rychlé štítky preference -->
           <div>
-            <div class="text-xs font-semibold text-sage-ink mb-1.5">Chuť / typ jídla</div>
+            <div class="text-xs font-semibold text-sage-ink mb-1.5">Typ jídla</div>
             <div id="aiPreferenceChips" class="flex flex-wrap gap-1.5">
               <button type="button" data-ai-pref="Cokoliv" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-semibold transition bg-sage text-white shadow-sm">Cokoliv</button>
               <button type="button" data-ai-pref="Rychlovka do 25 min" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-medium transition bg-sage-bg text-sage-ink border border-sage-border">Rychlovka do 25 min</button>
@@ -871,23 +948,17 @@
             </div>
           </div>
 
-          <!-- Počet porcí + volitelné textové přání -->
-          <div class="flex flex-col sm:flex-row gap-2.5">
-            <div class="flex items-center justify-between sm:justify-start gap-2 bg-sage-bg border border-sage-border rounded-xl px-3 py-1.5 shrink-0">
-              <span class="text-xs font-semibold text-sage-ink">Porce:</span>
-              <div class="flex items-center gap-1.5">
-                <button type="button" id="aiServingsMinus" aria-label="Méně porcí" class="w-8 h-8 rounded-lg bg-white border border-sage-border text-sage-dark font-bold hover:bg-sage-tint active:scale-95 transition">−</button>
-                <span id="aiServingsValue" class="w-6 text-center text-sm font-bold text-sage-ink">2</span>
-                <button type="button" id="aiServingsPlus" aria-label="Více porcí" class="w-8 h-8 rounded-lg bg-white border border-sage-border text-sage-dark font-bold hover:bg-sage-tint active:scale-95 transition">+</button>
-              </div>
+          <!-- Počet porcí (výchozí 4 porce pro vaření na více dní) -->
+          <div class="flex items-center justify-between gap-2 bg-sage-bg border border-sage-border rounded-xl px-3.5 py-2">
+            <div>
+              <span class="text-xs font-semibold text-sage-ink">Počet porcí:</span>
+              <span class="block text-[11px] text-sage-muted">Ideální uvařit rovnou na více dní</span>
             </div>
-
-            <input
-              type="text"
-              id="aiWishInput"
-              placeholder="Přání (např. hodně bílkovin po tréninku, teplé...)"
-              class="flex-1 h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
-            >
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="aiServingsMinus" aria-label="Méně porcí" class="w-8 h-8 rounded-lg bg-white border border-sage-border text-sage-dark font-bold hover:bg-sage-tint active:scale-95 transition">−</button>
+              <span id="aiServingsValue" class="w-7 text-center text-sm font-bold text-sage-ink">4</span>
+              <button type="button" id="aiServingsPlus" aria-label="Více porcí" class="w-8 h-8 rounded-lg bg-white border border-sage-border text-sage-dark font-bold hover:bg-sage-tint active:scale-95 transition">+</button>
+            </div>
           </div>
 
           <!-- Hlavní akční tlačítko generování -->
@@ -896,7 +967,7 @@
             id="aiGenerateBtn"
             class="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
           >
-            <span>✨ Vymyslet 3 recepty</span>
+            <span>✨ Vymyslet 3 kompletní recepty</span>
           </button>
         </div>
 
@@ -904,8 +975,8 @@
         <div id="aiLoadingBox" class="hidden bg-white rounded-2xl p-6 border border-sage-border shadow-sm text-center space-y-3">
           <div class="w-10 h-10 mx-auto rounded-full border-[3px] border-sage-tint border-t-sage animate-spin"></div>
           <div>
-            <div class="text-sm font-semibold text-sage-ink">AI Kuchař skládá recepty na míru…</div>
-            <p class="text-xs text-sage-muted mt-1">Zohledňuji tvůj profil, cíle živin i to, co už máš doma.</p>
+            <div class="text-sm font-semibold text-sage-ink">AI Kuchař skládá recepty i s přílohou…</div>
+            <p class="text-xs text-sage-muted mt-1">Ladím suroviny, koření i správné porce přesně podle tvého zadání.</p>
           </div>
         </div>
 
@@ -948,7 +1019,7 @@
   </div>
 
   <!-- ==========================================================================
-       MODÁL 7: VÝŽIVOVÝ PŘEHLED (AI rychlý zápis nahoře + Energie & Bílkoviny + 7denní radar)
+       MODÁL 7: VÝŽIVOVÝ PŘEHLED (S přepínačem Zapnout / Vypnout celé počítání)
        ========================================================================== -->
   <div id="nutritionModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center p-2 sm:p-3">
     <div class="w-full max-w-[510px] bg-sage-bg rounded-3xl shadow-2xl max-h-[93vh] flex flex-col border border-sage-border overflow-hidden">
@@ -978,192 +1049,220 @@
       <!-- Rolovatelný obsah Výživy -->
       <div class="p-4 overflow-y-auto flex-1 space-y-3.5">
 
-        <!-- Přepínač dne (Včera / Dnes / datum) -->
-        <div class="bg-white rounded-2xl p-2.5 border border-sage-border shadow-sm flex items-center justify-between gap-2">
-          <button type="button" id="nutrPrevDayBtn" class="px-3 py-1.5 rounded-xl bg-sage-bg hover:bg-sage-tint text-xs font-semibold text-sage-ink transition">← Předchozí</button>
-          <div class="text-center">
-            <div id="nutrSelectedDateLabel" class="text-xs sm:text-sm font-bold text-sage-ink">Dnes</div>
-            <div id="nutrSelectedDateSub" class="text-[11px] text-sage-muted"></div>
+        <!-- Přepínač Zapnout / Vypnout počítání kalorií a živin -->
+        <div class="bg-white rounded-2xl px-4 py-3 border border-sage-border shadow-sm flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs sm:text-sm font-bold text-sage-ink">Sledování kalorií a živin</div>
+            <div class="text-[11px] text-sage-muted mt-0.5">Když ho vypneš, apka funguje jen jako čistý nákupní seznam a recepty.</div>
           </div>
-          <button type="button" id="nutrNextDayBtn" class="px-3 py-1.5 rounded-xl bg-sage-bg hover:bg-sage-tint text-xs font-semibold text-sage-ink transition disabled:opacity-40">Další →</button>
+          <input
+            type="checkbox"
+            id="toggleNutritionEnabledCheckbox"
+            checked
+            class="w-5 h-5 accent-[#68826e] rounded cursor-pointer shrink-0"
+          >
         </div>
 
-        <!-- 1. RYCHLÝ ZÁPIS JÍDLA HNED NAHOŘE (AI větou jako výchozí, bez vážení!) -->
-        <div class="bg-white rounded-2xl p-4 border border-sage-soft shadow-sm space-y-3">
-          <div class="flex items-center justify-between gap-2">
-            <h3 class="text-sm font-bold text-sage-ink">Co jsi jedla?</h3>
-            <span class="text-[11px] font-medium text-sage-dark bg-sage-tint px-2 py-0.5 rounded-full">Bez vážení surovin</span>
-          </div>
-
-          <!-- Přepínač: AI větou (hlavní) / Z receptů / 1 surovina -->
-          <div class="grid grid-cols-3 gap-1 bg-sage-tint p-1 rounded-xl border border-sage-border">
-            <button type="button" data-log-mode="ai" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-semibold transition bg-white text-sage-ink shadow-sm">
-              ✨ Větou (AI)
-            </button>
-            <button type="button" data-log-mode="recipe" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-medium transition text-sage-muted">
-              Z receptů
-            </button>
-            <button type="button" data-log-mode="ingredient" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-medium transition text-sage-muted">
-              1 surovina
-            </button>
-          </div>
-
-          <!-- Způsob A (výchozí): Normální větou přes AI (s lokální cache + volitelným štítkem chodu) -->
-          <div id="logPanel-ai" class="space-y-2.5">
-            <!-- Volitelné štítky chodu (Snídaně / Oběd / Večeře / Svačina) -->
-            <div id="nutrMealTagChips" class="flex flex-wrap gap-1.5">
-              <button type="button" data-meal-tag="Snídaně" class="nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint transition">Snídaně</button>
-              <button type="button" data-meal-tag="Svačina" class="nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint transition">Svačina</button>
-              <button type="button" data-meal-tag="Oběd" class="nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint transition">Oběd</button>
-              <button type="button" data-meal-tag="Večeře" class="nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint transition">Večeře</button>
-            </div>
-
-            <input
-              type="text"
-              id="nutrAiSentenceInput"
-              placeholder="Např. ovesná kaše s banánem, tvarohová buchta..."
-              class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
-            >
-            <button
-              type="button"
-              id="logFromAiSentenceBtn"
-              class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              <span>✨ Zapsat přes AI</span>
-            </button>
-            <p class="text-[11px] text-sage-muted leading-snug">
-              Napiš jídlo normálně svými slovy — AI orientačně odhadne živiny a příště už ho zapíše okamžitě z paměti.
+        <!-- Stav, když je výživa vypnutá -->
+        <div id="nutritionDisabledBanner" class="hidden bg-white rounded-2xl p-6 border border-sage-border text-center space-y-3">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-sage-tint text-sage-dark flex items-center justify-center text-xl">🌿</div>
+          <div>
+            <h3 class="text-sm font-bold text-sage-ink">Počítání kalorií a živin je vypnuté</h3>
+            <p class="text-xs text-sage-muted mt-1 leading-relaxed">
+              Všechny karty v receptech, plánu i nákupu jsou teď čisté bez kalorií. Tvoje uložené cíle i předchozí záznamy zůstávají v bezpečí a kdykoli je můžeš zase zapnout.
             </p>
           </div>
+          <button
+            type="button"
+            id="enableNutritionQuickBtn"
+            class="px-4 py-2.5 rounded-xl bg-sage hover:bg-sage-dark text-white text-xs sm:text-sm font-semibold shadow-sm transition"
+          >
+            Zapnout sledování výživy
+          </button>
+        </div>
 
-          <!-- Způsob B: 1 klik z uložených Receptů -->
-          <div id="logPanel-recipe" class="hidden space-y-2">
-            <div class="flex gap-2">
-              <select id="nutrRecipeSelect" class="flex-1 min-w-0 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage"></select>
-              <select id="nutrRecipePortionSelect" aria-label="Počet porcí" class="w-24 h-11 px-2.5 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage">
-                <option value="0.5">0,5 porce</option>
-                <option value="1" selected>1 porce</option>
-                <option value="1.5">1,5 porce</option>
-                <option value="2">2 porce</option>
-              </select>
+        <!-- Aktivní tělo výživového přehledu -->
+        <div id="nutritionActiveBody" class="space-y-3.5">
+          <!-- Přepínač dne (Včera / Dnes / datum) -->
+          <div class="bg-white rounded-2xl p-2.5 border border-sage-border shadow-sm flex items-center justify-between gap-2">
+            <button type="button" id="nutrPrevDayBtn" class="px-3 py-1.5 rounded-xl bg-sage-bg hover:bg-sage-tint text-xs font-semibold text-sage-ink transition">← Předchozí</button>
+            <div class="text-center">
+              <div id="nutrSelectedDateLabel" class="text-xs sm:text-sm font-bold text-sage-ink">Dnes</div>
+              <div id="nutrSelectedDateSub" class="text-[11px] text-sage-muted"></div>
             </div>
-            <button
-              type="button"
-              id="logFromRecipeBtn"
-              class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition"
-            >
-              ✓ Zapsat recept do dneška
-            </button>
+            <button type="button" id="nutrNextDayBtn" class="px-3 py-1.5 rounded-xl bg-sage-bg hover:bg-sage-tint text-xs font-semibold text-sage-ink transition disabled:opacity-40">Další →</button>
           </div>
 
-          <!-- Způsob C: Jedna surovina z katalogu (100% offline) -->
-          <form id="logSingleIngredientForm" class="hidden space-y-2">
-            <input
-              type="text"
-              id="nutrIngNameInput"
-              placeholder="Surovina (např. Řecký jogurt, Banán, Vejce...)"
-              autocomplete="off"
-              class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
-            >
-            <div class="flex gap-2">
-              <input
-                type="number"
-                id="nutrIngAmountInput"
-                step="any"
-                min="0.1"
-                value="150"
-                aria-label="Množství"
-                class="w-24 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
-              >
-              <select
-                id="nutrIngUnitSelect"
-                aria-label="Jednotka"
-                class="flex-1 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
-              ></select>
-              <button
-                type="submit"
-                class="h-11 px-5 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition shrink-0"
-              >
-                + Zapsat
+          <!-- 1. RYCHLÝ ZÁPIS JÍDLA HNED NAHOŘE (AI větou jako výchozí, bez vážení!) -->
+          <div class="bg-white rounded-2xl p-4 border border-sage-soft shadow-sm space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-sm font-bold text-sage-ink">Co jsi jedla?</h3>
+              <span class="text-[11px] font-medium text-sage-dark bg-sage-tint px-2 py-0.5 rounded-full">Bez vážení surovin</span>
+            </div>
+
+            <!-- Přepínač: AI větou (hlavní) / Z receptů / 1 surovina -->
+            <div class="grid grid-cols-3 gap-1 bg-sage-tint p-1 rounded-xl border border-sage-border">
+              <button type="button" data-log-mode="ai" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-semibold transition bg-white text-sage-ink shadow-sm">
+                ✨ Větou (AI)
+              </button>
+              <button type="button" data-log-mode="recipe" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-medium transition text-sage-muted">
+                Z receptů
+              </button>
+              <button type="button" data-log-mode="ingredient" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-medium transition text-sage-muted">
+                1 surovina
               </button>
             </div>
-          </form>
-        </div>
 
-        <!-- 2. DNEŠNÍ HLAVNÍ UKAZATELE: ENERGIE A BÍLKOVINY + MAKRA -->
-        <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-3.5">
-          <!-- Energie (kcal) -->
-          <div>
-            <div class="flex items-baseline justify-between gap-2 mb-1">
-              <span class="text-xs font-bold uppercase tracking-wider text-sage-muted">Energie</span>
-              <span id="nutrKcalNumbers" class="text-sm font-bold text-sage-ink">0 / 2 500 kcal</span>
+            <!-- Způsob A (výchozí): Normální větou přes AI -->
+            <div id="logPanel-ai" class="space-y-2.5">
+              <div id="nutrMealTagChips" class="flex flex-wrap gap-1.5">
+                <button type="button" data-meal-tag="Snídaně" class="nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint transition">Snídaně</button>
+                <button type="button" data-meal-tag="Svačina" class="nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint transition">Svačina</button>
+                <button type="button" data-meal-tag="Oběd" class="nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint transition">Oběd</button>
+                <button type="button" data-meal-tag="Večeře" class="nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] font-medium bg-sage-bg text-sage-muted border border-sage-border hover:bg-sage-tint transition">Večeře</button>
+              </div>
+
+              <input
+                type="text"
+                id="nutrAiSentenceInput"
+                placeholder="Např. ovesná kaše s banánem, tvarohová buchta..."
+                class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
+              >
+              <button
+                type="button"
+                id="logFromAiSentenceBtn"
+                class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <span>✨ Zapsat přes AI</span>
+              </button>
+              <p class="text-[11px] text-sage-muted leading-snug">
+                Napiš jídlo normálně svými slovy — AI orientačně odhadne živiny a příště už ho zapíše okamžitě z paměti.
+              </p>
             </div>
-            <div class="w-full h-3 bg-sage-tint rounded-full overflow-hidden">
-              <div id="nutrKcalBar" class="h-full bg-sage rounded-full transition-all duration-300" style="width: 0%;"></div>
+
+            <!-- Způsob B: 1 klik z uložených Receptů -->
+            <div id="logPanel-recipe" class="hidden space-y-2">
+              <div class="flex gap-2">
+                <select id="nutrRecipeSelect" class="flex-1 min-w-0 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage"></select>
+                <select id="nutrRecipePortionSelect" aria-label="Počet porcí" class="w-24 h-11 px-2.5 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage">
+                  <option value="0.5">0,5 porce</option>
+                  <option value="1" selected>1 porce</option>
+                  <option value="1.5">1,5 porce</option>
+                  <option value="2">2 porce</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                id="logFromRecipeBtn"
+                class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition"
+              >
+                ✓ Zapsat recept do dneška
+              </button>
             </div>
-            <p id="nutrKcalHint" class="text-xs text-sage-muted mt-1"></p>
+
+            <!-- Způsob C: Jedna surovina z katalogu (100% offline) -->
+            <form id="logSingleIngredientForm" class="hidden space-y-2">
+              <input
+                type="text"
+                id="nutrIngNameInput"
+                placeholder="Surovina (např. Řecký jogurt, Banán, Vejce...)"
+                autocomplete="off"
+                class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
+              >
+              <div class="flex gap-2">
+                <input
+                  type="number"
+                  id="nutrIngAmountInput"
+                  step="any"
+                  min="0.1"
+                  value="150"
+                  aria-label="Množství"
+                  class="w-24 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+                >
+                <select
+                  id="nutrIngUnitSelect"
+                  aria-label="Jednotka"
+                  class="flex-1 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+                ></select>
+                <button
+                  type="submit"
+                  class="h-11 px-5 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition shrink-0"
+                >
+                  + Zapsat
+                </button>
+              </div>
+            </form>
           </div>
 
-          <!-- Bílkoviny (g) -->
-          <div>
-            <div class="flex items-baseline justify-between gap-2 mb-1">
-              <span class="text-xs font-bold uppercase tracking-wider text-sage-muted">Bílkoviny (ke cvičení)</span>
-              <span id="nutrProteinNumbers" class="text-sm font-bold text-sage-dark">0 / 120 g</span>
+          <!-- 2. DNEŠNÍ HLAVNÍ UKAZATELE: ENERGIE A BÍLKOVINY + MAKRA -->
+          <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-3.5">
+            <div>
+              <div class="flex items-baseline justify-between gap-2 mb-1">
+                <span class="text-xs font-bold uppercase tracking-wider text-sage-muted">Energie</span>
+                <span id="nutrKcalNumbers" class="text-sm font-bold text-sage-ink">0 / 2 500 kcal</span>
+              </div>
+              <div class="w-full h-3 bg-sage-tint rounded-full overflow-hidden">
+                <div id="nutrKcalBar" class="h-full bg-sage rounded-full transition-all duration-300" style="width: 0%;"></div>
+              </div>
+              <p id="nutrKcalHint" class="text-xs text-sage-muted mt-1"></p>
             </div>
-            <div class="w-full h-3 bg-sage-tint rounded-full overflow-hidden">
-              <div id="nutrProteinBar" class="h-full bg-sage-dark rounded-full transition-all duration-300" style="width: 0%;"></div>
+
+            <div>
+              <div class="flex items-baseline justify-between gap-2 mb-1">
+                <span class="text-xs font-bold uppercase tracking-wider text-sage-muted">Bílkoviny (ke cvičení)</span>
+                <span id="nutrProteinNumbers" class="text-sm font-bold text-sage-dark">0 / 120 g</span>
+              </div>
+              <div class="w-full h-3 bg-sage-tint rounded-full overflow-hidden">
+                <div id="nutrProteinBar" class="h-full bg-sage-dark rounded-full transition-all duration-300" style="width: 0%;"></div>
+              </div>
+              <p id="nutrProteinHint" class="text-xs text-sage-muted mt-1"></p>
             </div>
-            <p id="nutrProteinHint" class="text-xs text-sage-muted mt-1"></p>
+
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-sage-border/70">
+              <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
+                <div class="text-[11px] text-sage-muted">Sacharidy</div>
+                <div id="nutrCarbsText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 310 g</div>
+              </div>
+              <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
+                <div class="text-[11px] text-sage-muted">Tuky</div>
+                <div id="nutrFatText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 80 g</div>
+              </div>
+              <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
+                <div class="text-[11px] text-sage-muted">Vláknina</div>
+                <div id="nutrFiberText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 30 g</div>
+              </div>
+            </div>
           </div>
 
-          <!-- Klidný orientační řádek: Sacharidy, Tuky, Vláknina -->
-          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-sage-border/70">
-            <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
-              <div class="text-[11px] text-sage-muted">Sacharidy</div>
-              <div id="nutrCarbsText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 310 g</div>
-            </div>
-            <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
-              <div class="text-[11px] text-sage-muted">Tuky</div>
-              <div id="nutrFatText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 80 g</div>
-            </div>
-            <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
-              <div class="text-[11px] text-sage-muted">Vláknina</div>
-              <div id="nutrFiberText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 30 g</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. 7DENNÍ RADAR 10 VITAMÍNŮ A MINERÁLŮ -->
-        <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-3">
-          <div class="flex items-start justify-between gap-2">
+          <!-- 3. 7DENNÍ RADAR 10 VITAMÍNŮ A MINERÁLŮ -->
+          <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-3">
             <div>
               <h3 class="text-sm font-bold text-sage-ink">7denní radar vitamínů a minerálů</h3>
               <p id="nutrRadarSubtitle" class="text-[11px] text-sage-muted mt-0.5">
                 Klepni na kteroukoli živinu pro tipy, z čeho ji snadno doplnit.
               </p>
             </div>
-          </div>
 
-          <div id="nutrMicroGrid" class="grid grid-cols-2 gap-2"></div>
+            <div id="nutrMicroGrid" class="grid grid-cols-2 gap-2"></div>
 
-          <!-- Detail vybrané mikroživiny po klepnutí -->
-          <div id="nutrMicroDetailBox" class="hidden bg-sage-bg rounded-2xl p-3 border border-sage-border space-y-2">
-            <div class="flex items-center justify-between gap-2">
-              <div id="nutrMicroDetailTitle" class="text-xs font-bold text-sage-ink"></div>
-              <button type="button" id="closeNutrMicroDetailBtn" class="text-xs text-sage-muted hover:text-sage-ink">✕</button>
+            <div id="nutrMicroDetailBox" class="hidden bg-sage-bg rounded-2xl p-3 border border-sage-border space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <div id="nutrMicroDetailTitle" class="text-xs font-bold text-sage-ink"></div>
+                <button type="button" id="closeNutrMicroDetailBtn" class="text-xs text-sage-muted hover:text-sage-ink">✕</button>
+              </div>
+              <p id="nutrMicroDetailSources" class="text-xs text-sage-muted leading-relaxed"></p>
+              <div id="nutrMicroDetailChips" class="flex flex-wrap gap-1.5"></div>
             </div>
-            <p id="nutrMicroDetailSources" class="text-xs text-sage-muted leading-relaxed"></p>
-            <div id="nutrMicroDetailChips" class="flex flex-wrap gap-1.5"></div>
           </div>
-        </div>
 
-        <!-- 4. DENÍK ZAPSANYCH JÍDEL PRO VYBRANÝ DEN -->
-        <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-2.5">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-sage-ink">Zapsaná jídla dne</h3>
-            <span id="nutrDayEntriesCount" class="text-xs font-semibold text-sage-muted">0 položek</span>
+          <!-- 4. DENÍK ZAPSANYCH JÍDEL PRO VYBRANÝ DEN -->
+          <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-sage-ink">Zapsaná jídla dne</h3>
+              <span id="nutrDayEntriesCount" class="text-xs font-semibold text-sage-muted">0 položek</span>
+            </div>
+            <div id="nutrDayEntriesList" class="space-y-2"></div>
           </div>
-          <div id="nutrDayEntriesList" class="space-y-2"></div>
         </div>
 
       </div>
@@ -1171,7 +1270,7 @@
   </div>
 
   <!-- ==========================================================================
-       MODÁL 8: OSOBNÍ PROFIL, CÍLE VÝŽIVY A ZÁLOHA DAT (PRO KOHOHOKOLI)
+       MODÁL 8: OSOBNÍ PROFIL, CÍLE VÝŽIVY A ZÁLOHA DAT
        ========================================================================== -->
   <div id="nutritionProfileModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[70] flex items-end sm:items-center justify-center p-2.5 sm:p-3">
     <div class="w-full max-w-[490px] bg-white rounded-3xl p-5 shadow-2xl max-h-[92vh] overflow-y-auto border border-sage-border">
@@ -1180,11 +1279,15 @@
         <button type="button" data-close-modal="nutritionProfileModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-tint transition">✕</button>
       </div>
       <p class="text-xs text-sage-muted mb-3.5 leading-relaxed">
-        Nastav si vlastní cíle nebo si je nech orientačně spočítat. Všechna čísla můžeš kdykoli ručně přepsat.
+        Nastav si vlastní cíle nebo si je nech orientačně spočítat. Sledování živin můžeš kdykoli i úplně vypnout.
       </p>
 
       <form id="nutritionProfileForm" class="space-y-4">
-        <!-- 1. Směr / cíl stravování -->
+        <label class="flex items-center justify-between gap-3 bg-sage-bg rounded-2xl px-3.5 py-2.5 border border-sage-border cursor-pointer select-none">
+          <span class="text-xs font-bold text-sage-ink">Zobrazovat kalorie, makra a tipy v aplikaci</span>
+          <input type="checkbox" id="profEnabledCheckbox" checked class="w-5 h-5 accent-[#68826e] rounded cursor-pointer shrink-0">
+        </label>
+
         <div>
           <label class="block text-xs font-bold text-sage-ink mb-1.5">1. Tvůj hlavní cíl</label>
           <div class="grid grid-cols-3 gap-1.5 bg-sage-tint p-1 rounded-xl border border-sage-border">
@@ -1200,11 +1303,8 @@
           </div>
         </div>
 
-        <!-- 2. Volitelný orientační výpočet podle postavy a pohybu -->
         <div class="bg-sage-bg rounded-2xl p-3.5 border border-sage-border space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-sage-dark">2. Volitelný výpočet doporučených hodnot</span>
-          </div>
+          <span class="block text-xs font-bold text-sage-dark">2. Volitelný výpočet doporučených hodnot</span>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div>
@@ -1245,7 +1345,6 @@
           </div>
         </div>
 
-        <!-- 3. Denní cíle energie a maker (libovolně upravitelné) -->
         <div class="space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-sage-ink">3. Denní cíle energie a makroživin</span>
@@ -1278,7 +1377,6 @@
           </div>
         </div>
 
-        <!-- 4. Volitelné ruční upravení cílů vitamínů a minerálů -->
         <details class="bg-sage-bg rounded-2xl border border-sage-border px-3.5 py-2.5">
           <summary class="text-xs font-bold text-sage-dark cursor-pointer select-none">
             4. Cíle vitamínů a minerálů (volitelné úpravy)
@@ -1298,7 +1396,7 @@
       <div class="mt-4 pt-4 border-t border-sage-border space-y-2">
         <div class="text-xs font-bold text-sage-ink">Záloha dat v mobilu (Export / Import)</div>
         <p class="text-[11px] text-sage-muted leading-relaxed">
-          Ulož si všechny svoje recepty, zásoby, plán i historii výživy do souboru (API klíč se z bezpečnostních důvodů neexportuje).
+          Ulož si všechny svoje recepty, zásoby, plán i historii do souboru (API klíč se z bezpečnostních důvodů neexportuje).
         </p>
         <div class="flex gap-2">
           <button type="button" id="exportBackupBtn" class="flex-1 h-10 rounded-xl bg-sage-bg hover:bg-sage-tint border border-sage-border text-xs font-semibold text-sage-dark transition">
@@ -1314,7 +1412,7 @@
   </div>
 
   <!-- ==========================================================================
-       MODÁL 9: RYCHLÉ POTVRZENÍ PORCE PŘI „✓ SNĚDENO“ Z PLÁNU NEBO RECEPTŮ
+       MODÁL 9: RYCHLÉ POTVRZENÍ PORCE PŘI „✓ SNĚDENO“
        ========================================================================== -->
   <div id="quickEatModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[80] flex items-end sm:items-center justify-center p-3">
     <div class="w-full max-w-[400px] bg-white rounded-3xl p-5 shadow-2xl border border-sage-border space-y-3.5">
@@ -1349,6 +1447,54 @@
         class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition"
       >
         ✓ Zapsat do dnešního dne
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODÁL 10: UVAŘIT DO ZÁSOBY („🍲 Uvařit na více porcí“, např. 4 nebo 10 porcí)
+       ========================================================================== -->
+  <div id="cookBatchModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[80] flex items-end sm:items-center justify-center p-3">
+    <div class="w-full max-w-[400px] bg-white rounded-3xl p-5 shadow-2xl border border-sage-border space-y-3.5">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <h2 class="text-base font-bold text-sage-ink">🍲 Uvařit do zásoby</h2>
+          <p id="cookBatchRecipeTitle" class="text-xs text-sage-muted mt-0.5"></p>
+        </div>
+        <button type="button" data-close-modal="cookBatchModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-tint transition">✕</button>
+      </div>
+
+      <div>
+        <div class="text-xs font-semibold text-sage-ink mb-1.5">Kolik porcí jsi uvařila?</div>
+        <div class="grid grid-cols-4 gap-1.5 mb-2">
+          <button type="button" data-batch-preset="2" class="cook-batch-preset-btn h-9 rounded-xl bg-sage-bg border border-sage-border text-xs font-semibold text-sage-ink">2 porce</button>
+          <button type="button" data-batch-preset="4" class="cook-batch-preset-btn h-9 rounded-xl bg-sage text-white text-xs font-semibold shadow-sm">4 porce</button>
+          <button type="button" data-batch-preset="6" class="cook-batch-preset-btn h-9 rounded-xl bg-sage-bg border border-sage-border text-xs font-semibold text-sage-ink">6 porcí</button>
+          <button type="button" data-batch-preset="10" class="cook-batch-preset-btn h-9 rounded-xl bg-sage-bg border border-sage-border text-xs font-semibold text-sage-ink">10 porcí</button>
+        </div>
+        <input
+          type="number"
+          id="cookBatchCustomPortionsInput"
+          min="1"
+          max="50"
+          step="0.5"
+          value="4"
+          aria-label="Vlastní počet porcí"
+          class="w-full h-10 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink text-center font-semibold focus:outline-none focus:bg-white focus:border-sage"
+        >
+      </div>
+
+      <label class="flex items-center gap-2.5 text-xs text-sage-muted cursor-pointer select-none">
+        <input type="checkbox" id="cookBatchDeductPantryCheckbox" checked class="w-4 h-4 accent-[#68826e] rounded">
+        <span>Odečíst použité suroviny ze zásob Doma</span>
+      </label>
+
+      <button
+        type="button"
+        id="confirmCookBatchBtn"
+        class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition"
+      >
+        🍲 Uložit do uvařených zásob
       </button>
     </div>
   </div>
@@ -1390,7 +1536,6 @@
       spetka: 'špetka', spetky: 'špetka'
     };
 
-    /** Definice 10 sledovaných vitamínů a minerálů + české zdroje pro doplnění */
     const MICRONUTRIENT_META = [
       {
         key: 'iron', label: 'Železo', unit: 'mg', defaultFemale: 15, defaultMale: 10,
@@ -1444,11 +1589,6 @@
       }
     ];
 
-    /**
-     * Katalog českých surovin + nutriční hodnoty na 100 g:
-     * n: [kcal, protein, carbs, fat, fiber, iron, magnesium, calcium, zinc, potassium, vitC, vitD, vitB12, folate, omega3]
-     * pg: typická hmotnost 1 ks v gramech
-     */
     const BASE_CATALOG = [
       // Mléčné výrobky a vejce
       { name: 'Vejce', unit: 'ks', location: 'lednice', pg: 60, n: [143, 12.6, 0.7, 9.5, 0, 1.8, 12, 56, 1.3, 138, 0, 2.0, 1.1, 47, 0.1] },
@@ -1578,6 +1718,7 @@
       { name: 'Olivový olej', unit: 'ml', location: 'spiz', pg: 15, n: [884, 0, 0, 100, 0, 0.6, 0, 1, 0, 1, 0, 0, 0, 0, 0.76] },
       { name: 'Slunečnicový olej', unit: 'ml', location: 'spiz', pg: 15, n: [884, 0, 0, 100, 0, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0.05] },
       { name: 'Sójová omáčka', unit: 'ml', location: 'spiz', pg: 15, n: [53, 8.1, 4.9, 0.1, 0.8, 1.5, 40, 20, 0.4, 212, 0, 0, 0, 14, 0] },
+      { name: 'BBQ omáčka', unit: 'ml', location: 'lednice', pg: 30, n: [172, 0.8, 41.0, 0.4, 0.9, 0.5, 14, 18, 0.2, 230, 2.0, 0, 0, 6, 0] },
       { name: 'Rajčatový protlak', unit: 'g', location: 'spiz', pg: 140, n: [82, 4.3, 18.9, 0.5, 4.1, 3.0, 42, 36, 0.6, 1014, 21.9, 0, 0, 12, 0.02] },
       { name: 'Krájená rajčata', unit: 'plechovka', location: 'spiz', pg: 400, n: [24, 1.2, 4.5, 0.2, 1.3, 0.6, 15, 22, 0.2, 240, 12.0, 0, 0, 12, 0.01] },
       { name: 'Passata', unit: 'ml', location: 'spiz', pg: 500, n: [30, 1.5, 5.5, 0.3, 1.5, 0.8, 18, 20, 0.3, 290, 14.0, 0, 0, 14, 0.01] },
@@ -1591,7 +1732,6 @@
       { name: 'Vývar', unit: 'ml', location: 'spiz', pg: 250, n: [12, 1.4, 0.8, 0.4, 0, 0.1, 3, 5, 0.1, 45, 0, 0, 0.1, 2, 0] }
     ];
 
-    /** Rychlé chipsy pro doplnění zásob doma na 1 klepnutí */
     const QUICK_STAPLES = [
       { name: 'Vejce', amount: 6, unit: 'ks', location: 'lednice' },
       { name: 'Mléko', amount: 1000, unit: 'ml', location: 'lednice' },
@@ -1711,7 +1851,7 @@
     }
 
     /* ==========================================================================
-       3. DVOUVRSTVÝ MOTOR SJEDNOCOVÁNÍ SUROVIN (MRAŽENÝ HRÁŠEK = HRÁŠEK)
+       3. DVOUVRSTVÝ MOTOR SJEDNOCOVÁNÍ SUROVIN + AUTOMATICKÉ KOŘENÍ
        ========================================================================== */
     function getDefaultUnificationGroups() {
       return [
@@ -1753,7 +1893,7 @@
       'zakysana smetana', 'mlete maso', 'mlete hovezi', 'rajcatovy protlak',
       'krajena rajcata', 'sojova omacka', 'prasek do peciva', 'toustovy chleb',
       'cervena cocka', 'jarni cibulka', 'arasidove maslo', 'dynova seminka',
-      'chia seminka', 'lnene seminko', 'vlasske orechy', 'horka cokolada'
+      'chia seminka', 'lnene seminko', 'vlasske orechy', 'horka cokolada', 'bbq omacka'
     ];
 
     const STRIP_ADJECTIVES = new Set([
@@ -1810,21 +1950,61 @@
       return `auto:${auto}`;
     }
 
+    const WATER_STAPLES = new Set([
+      'voda', 'vody', 'horka voda', 'tepla voda', 'studena voda', 'vlazna voda'
+    ]);
+
+    const KITCHEN_SPICES = new Set([
+      'sul', 'soli', 'morska sul', 'himalajska sul', 'jemna sul', 'hrubozrnna sul',
+      'pepr', 'cerny pepr', 'bily pepr', 'zeleny pepr', 'barevny pepr', 'kajensky pepr',
+      'sul a pepr', 'pepr a sul',
+      'chilli', 'chilli vlocky', 'mlete chilli',
+      'koreni', 'bylinky', 'provensalske koreni', 'italske bylinky', 'grilovaci koreni',
+      'pernikove koreni', 'kari', 'kari koreni', 'garam masala', 'kurkuma', 'mleta kurkuma',
+      'zazvor mlety', 'mlety zazvor', 'suseny zazvor',
+      'sladka paprika', 'paprika sladka', 'mleta paprika', 'mleta sladka paprika',
+      'uzena paprika', 'paliva paprika', 'paprika uzena', 'paprika paliva',
+      'kmin', 'drceny kmin', 'mlety kmin', 'cely kmin', 'rimsky kmin',
+      'oregano', 'susene oregano', 'majoranka', 'susena majoranka',
+      'tymian', 'suseny tymian', 'rozmaryn', 'suseny rozmaryn',
+      'bobkovy list', 'nove koreni', 'hrebicek', 'badyan', 'kardamom',
+      'muskatovy orisek', 'muskatovy kvet',
+      'skorice', 'mleta skorice', 'cela skorice', 'skoricovy cukr',
+      'vanilka', 'vanilkovy extrakt', 'vanilkovy cukr', 'vanilkova esence',
+      'suseny cesnek', 'cesnekovy prasek', 'susena cibule', 'cibulovy prasek',
+      'susena bazalka', 'susena petrzelka', 'suseny kopr', 'libecek', 'saturejka', 'salvej', 'estragon'
+    ]);
+
+    const SPICE_FILLER_WORDS = new Set([
+      'cerstve', 'mlety', 'mleta', 'mlete', 'drceny', 'drcena', 'drcene',
+      'suseny', 'susena', 'susene', 'cely', 'cela', 'cele', 'trochu', 'spetka'
+    ]);
+
+    function isSingleSpiceOrStaple(phrase) {
+      const clean = cleanRawPhrase(phrase);
+      if (!clean) return false;
+      if (WATER_STAPLES.has(clean) || KITCHEN_SPICES.has(clean)) return true;
+      if (clean.endsWith(' koreni') || clean.startsWith('koreni ') || clean.endsWith(' bylinky')) return true;
+
+      const withoutFillers = clean
+        .split(' ')
+        .filter(w => w && !SPICE_FILLER_WORDS.has(w))
+        .join(' ')
+        .trim();
+      return Boolean(withoutFillers && (WATER_STAPLES.has(withoutFillers) || KITCHEN_SPICES.has(withoutFillers)));
+    }
+
+    function isKitchenStapleOrSpice(rawName) {
+      if (isSingleSpiceOrStaple(rawName)) return true;
+      const parts = String(rawName || '')
+        .split(/\s*(?:,|\/|&|\ba\b|\bnebo\b)\s*/i)
+        .map(p => p.trim())
+        .filter(Boolean);
+      return parts.length > 1 && parts.every(part => isSingleSpiceOrStaple(part));
+    }
+
     function evaluateIngredientMatch(req, pantryItems) {
       const reqClean = cleanRawPhrase(req.name);
-      if (['voda', 'vody', 'horka voda', 'tepla voda', 'studena voda', 'sul', 'pepr', 'cerny pepr'].includes(reqClean)) {
-        return {
-          status: 'have',
-          matchedItems: [],
-          matchedNames: [capitalizeFirst(req.name)],
-          availableAmount: Number(req.amount) || 1,
-          availableText: 'základ v kuchyni',
-          missingAmount: 0,
-          unitIncompatible: false,
-          unifiedViaDifferentName: false
-        };
-      }
-
       const reqKey = getCanonicalKey(req.name);
       const reqAmount = Number(req.amount) || 0;
       const reqInfo = getUnitInfo(req.unit);
@@ -1834,6 +2014,20 @@
       );
 
       if (matchedItems.length === 0) {
+        if (isKitchenStapleOrSpice(req.name)) {
+          const isWater = WATER_STAPLES.has(reqClean);
+          return {
+            status: 'have',
+            matchedItems: [],
+            matchedNames: [capitalizeFirst(req.name)],
+            availableAmount: reqAmount || 1,
+            availableText: isWater ? 'základ v kuchyni' : 'koření / základ v kuchyni',
+            missingAmount: 0,
+            unitIncompatible: false,
+            unifiedViaDifferentName: false
+          };
+        }
+
         return {
           status: 'missing',
           matchedItems: [],
@@ -1932,7 +2126,7 @@
     }
 
     /* ==========================================================================
-       4. VÝŽIVOVÝ ENGINE (OFFLINE KALKULAČKA Z KATALOGU, PROFIL CÍLŮ A 7DENNÍ RADAR)
+       4. VÝŽIVOVÝ ENGINE (VOLITELNÝ — LZE KDYKOLI ZAPNOUT / VYPNOUT)
        ========================================================================== */
     const ALL_NUTRIENT_KEYS = [
       'kcal', 'protein', 'carbs', 'fat', 'fiber',
@@ -1963,8 +2157,9 @@
 
     function getDefaultNutritionProfile() {
       return {
+        enabled: true,
         configured: false,
-        goalMode: 'gain',       // 'gain' | 'maintain' | 'lose'
+        goalMode: 'gain',
         sex: 'female',
         age: 25,
         weight: 60,
@@ -1988,6 +2183,10 @@
           omega3: 1.5
         }
       };
+    }
+
+    function isNutritionEnabled() {
+      return state.nutritionProfile?.enabled !== false;
     }
 
     function computeRecommendedProfileTargets({ goalMode, sex, age, weight, height, activity }) {
@@ -2070,8 +2269,7 @@
     }
 
     function calculateIngredientNutrients(name, amount, unit) {
-      const clean = cleanRawPhrase(name);
-      if (['voda', 'vody', 'sul', 'pepr', 'cerny pepr'].includes(clean)) {
+      if (isKitchenStapleOrSpice(name)) {
         return emptyNutrients();
       }
 
@@ -2111,7 +2309,6 @@
       return { entries, totals };
     }
 
-    /** 7denní radar mikroživin + 7denní průměr bílkovin */
     function getSevenDayMicroSummary() {
       const targets = state.nutritionProfile?.targets || getDefaultNutritionProfile().targets;
       const validDates = new Set();
@@ -2159,10 +2356,6 @@
       };
     }
 
-    function isNutritionActive() {
-      return Boolean(state.nutritionProfile?.configured) || (state.foodLog && state.foodLog.length > 0);
-    }
-
     /* ==========================================================================
        5. UKÁZKOVÁ DATA PŘI PRVNÍM SPUŠTĚNÍ
        ========================================================================== */
@@ -2172,6 +2365,16 @@
         nutritionProfile: getDefaultNutritionProfile(),
         foodLog: [],
         aiFoodCache: {},
+
+        cookedBatches: [
+          {
+            id: 'cb_1',
+            name: 'Domácí vývar',
+            portions: 6,
+            recipeId: null,
+            perServingNutrients: calculateIngredientNutrients('Vývar', 350, 'ml')
+          }
+        ],
 
         pantry: [
           { id: 'pan_1',  name: 'Mražený hrášek',     amount: 300,  unit: 'g',  location: 'mrazak' },
@@ -2197,7 +2400,7 @@
             steps: [
               'Cibuli nakrájej nadrobno a na polovině másla ji zesklovať.',
               'Přisyp rýži, minutu zarestuj a postupně podlévej horkou vodou do změknutí.',
-              'Asi 4 minuty před koncem přidej hrášek a smetanu, promíchej a osol.',
+              'Asi 4 minuty před koncem přidej hrášek a smetanu, promíchej, osol a opepři.',
               'Odstav z plotny, vmíchej zbytek másla a podávej zasypané sýrem.'
             ],
             ingredients: [
@@ -2205,7 +2408,8 @@
               { name: 'Rýže',    amount: 200, unit: 'g' },
               { name: 'Cibule',  amount: 1,   unit: 'ks' },
               { name: 'Máslo',   amount: 30,  unit: 'g' },
-              { name: 'Smetana', amount: 100, unit: 'ml' }
+              { name: 'Smetana', amount: 100, unit: 'ml' },
+              { name: 'Sůl a pepř', amount: 1, unit: 'špetka' }
             ]
           },
           {
@@ -2215,41 +2419,44 @@
             servings: 1,
             note: 'Nadýchaná rychlá snídaně nebo lehká večeře plná bílkovin.',
             steps: [
-              'Rozšlehej vejce se špetkou soli a pepře.',
+              'Rozšlehej vejce se špetkou soli, pepře a muškátového oříšku.',
               'Na pánvi rozpusť máslo a nech na něm 1 minutu zavadnout špenát.',
               'Zalij vejci, stáhni plamen a pod pokličkou opékej 3–4 minuty dozlatova.'
             ],
             ingredients: [
-              { name: 'Vejce',  amount: 3,  unit: 'ks' },
-              { name: 'Špenát', amount: 80, unit: 'g' },
-              { name: 'Máslo',  amount: 15, unit: 'g' }
+              { name: 'Vejce',           amount: 3,  unit: 'ks' },
+              { name: 'Špenát',          amount: 80, unit: 'g' },
+              { name: 'Máslo',           amount: 15, unit: 'g' },
+              { name: 'Muškátový oříšek', amount: 1, unit: 'špetka' }
             ]
           },
           {
             id: 'rec_3',
             name: 'Kuřecí těstoviny s brokolicí',
             prepTime: '25 min',
-            servings: 2,
+            servings: 4,
             note: 'Syté krémové těstoviny s kuřecím masem, česnekem a brokolicí.',
             steps: [
               'Dej vařit těstoviny do osolené vody; 3 minuty před koncem k nim přidej růžičky brokolice.',
-              'Na pánvi orestuj nakrájená kuřecí prsa dozlatova a přidej nasekaný česnek.',
+              'Na pánvi orestuj nakrájená kuřecí prsa dozlatova, přidej nasekaný česnek a oregano.',
               'Zalij smetanou, nech krátce probublat a promíchej se scezenými těstovinami a brokolicí.'
             ],
             ingredients: [
-              { name: 'Kuřecí prsa', amount: 300, unit: 'g' },
-              { name: 'Těstoviny',   amount: 250, unit: 'g' },
+              { name: 'Kuřecí prsa', amount: 500, unit: 'g' },
+              { name: 'Těstoviny',   amount: 400, unit: 'g' },
               { name: 'Brokolice',   amount: 1,   unit: 'ks' },
-              { name: 'Smetana',     amount: 150, unit: 'ml' },
-              { name: 'Česnek',      amount: 2,   unit: 'stroužek' }
+              { name: 'Smetana',     amount: 200, unit: 'ml' },
+              { name: 'Česnek',      amount: 2,   unit: 'stroužek' },
+              { name: 'Oregano',     amount: 1,   unit: 'lžička' }
             ]
           }
         ],
 
         plan: {
           0: [{ id: 'pl_1', recipeId: 'rec_1' }],
-          1: [{ id: 'pl_2', recipeId: 'rec_3' }],
-          2: [], 3: [], 4: [], 5: [], 6: []
+          1: [{ id: 'pl_2', recipeId: 'rec_3', batchGroupId: 'bg_demo', batchLabel: '1/2' }],
+          2: [{ id: 'pl_3', recipeId: 'rec_3', batchGroupId: 'bg_demo', batchLabel: '2/2' }],
+          3: [], 4: [], 5: [], 6: []
         },
 
         shoppingList: [
@@ -2268,18 +2475,24 @@
     const openRecipeIds = new Set(['rec_1']);
     let editingRecipeId = null;
     let pickingPlanDay = null;
+    let planPickerSpanDays = 1;
     let confirmCallback = null;
 
-    // Stav výživového modálu (AI větou jako výchozí rychlý zápis)
+    // Aktivní inline výměna suroviny (klíč např. 'rec:rec_1:0' nebo 'ai:0:2')
+    let activeSwapTarget = null;
+
+    // Stav výživového modálu
     let selectedNutritionDate = getLocalDateKey(0);
     let selectedNutritionLogMode = 'ai';
     let selectedMealTag = '';
     let selectedMicroDetailKey = null;
     let draftGoalMode = 'gain';
 
-    // Stav rychlého modálu „Snědeno“
+    // Stav rychlých modálů „Snědeno“ a „Uvařit do zásoby“
     let quickEatRecipeId = null;
     let quickEatPortion = 1;
+    let cookBatchRecipeId = null;
+    let cookBatchAiIndex = null;
 
     function loadState() {
       try {
@@ -2298,11 +2511,13 @@
             ? {
                 ...def.nutritionProfile,
                 ...parsed.nutritionProfile,
+                enabled: parsed.nutritionProfile.enabled !== false,
                 targets: { ...def.nutritionProfile.targets, ...(parsed.nutritionProfile.targets || {}) }
               }
             : def.nutritionProfile,
           foodLog: Array.isArray(parsed.foodLog) ? parsed.foodLog : [],
           aiFoodCache: parsed.aiFoodCache && typeof parsed.aiFoodCache === 'object' ? parsed.aiFoodCache : {},
+          cookedBatches: Array.isArray(parsed.cookedBatches) ? parsed.cookedBatches : def.cookedBatches,
           pantry: Array.isArray(parsed.pantry) ? parsed.pantry : def.pantry,
           recipes: Array.isArray(parsed.recipes) ? parsed.recipes : def.recipes,
           plan: parsed.plan && typeof parsed.plan === 'object' ? parsed.plan : def.plan,
@@ -2325,7 +2540,7 @@
     }
 
     /* ==========================================================================
-       7. SLUČOVÁNÍ POLOŽEK DO NÁKUPU A DOMÁCÍCH ZÁSOB
+       7. SLUČOVÁNÍ POLOŽEK DO NÁKUPU, DOMÁCÍCH ZÁSOB A UVAŘENÝCH DÁVEK
        ========================================================================== */
     function guessLocationForName(name) {
       const clean = cleanRawPhrase(name);
@@ -2389,6 +2604,28 @@
         amount: qty,
         unit: UNITS.includes(unit) ? unit : 'ks',
         location: location || guessLocationForName(cleanName)
+      });
+    }
+
+    function addOrMergeCookedBatch(name, portions, recipeId = null, perServingNutrients = null) {
+      const cleanName = capitalizeFirst(name);
+      const qty = Math.round((Number(portions) || 1) * 10) / 10;
+      if (!cleanName || qty <= 0) return;
+
+      const existing = state.cookedBatches.find(b => cleanRawPhrase(b.name) === cleanRawPhrase(cleanName));
+      if (existing) {
+        existing.portions = Math.round((Number(existing.portions) + qty) * 10) / 10;
+        if (recipeId) existing.recipeId = recipeId;
+        if (perServingNutrients) existing.perServingNutrients = perServingNutrients;
+        return;
+      }
+
+      state.cookedBatches.unshift({
+        id: uid('cb'),
+        name: cleanName,
+        portions: qty,
+        recipeId,
+        perServingNutrients: perServingNutrients || calculateIngredientNutrients(cleanName, 250, 'g')
       });
     }
 
@@ -2613,17 +2850,22 @@
     }
 
     function updateNutritionHeaderIndicator() {
+      const enabled = isNutritionEnabled();
       const dot = document.getElementById('nutritionHeaderDot');
-      if (!dot) return;
-      dot.classList.toggle('hidden', !isNutritionActive());
+      const btn = document.getElementById('openNutritionBtn');
+      if (dot) dot.classList.toggle('hidden', !enabled);
+      if (btn) {
+        btn.classList.toggle('text-sage', enabled);
+        btn.classList.toggle('text-sage-muted/60', !enabled);
+      }
     }
 
     function updateHeader() {
       const meta = {
         shopping: ['Nákupní seznam', 'Přehled položek ke koupi a v košíku'],
-        plan:     ['Plánovač jídla', 'Týdenní jídelníček s chytrým odečtem zásob'],
-        recipes:  ['Recepty', 'Porovnáno v reálném čase s tím, co máš doma'],
-        pantry:   ['Co mám doma', 'Lednice, spíž, mrazák a sjednocení surovin']
+        plan:     ['Plánovač jídla', 'Týdenní jídelníček i vaření na více dní'],
+        recipes:  ['Recepty', 'Porovnáno s tím, co máš doma • klikni ⇄ pro výměnu'],
+        pantry:   ['Co mám doma', 'Uvařená jídla do zásoby, lednice, spíž a mrazák']
       };
       const [title, sub] = meta[activeTab] || meta.shopping;
       document.getElementById('headerTitle').textContent = title;
@@ -2632,6 +2874,7 @@
 
     function switchTab(tabName) {
       activeTab = tabName;
+      activeSwapTarget = null;
       closeAutocomplete();
       updateHeader();
 
@@ -2652,11 +2895,15 @@
       if (tabName === 'pantry')   renderPantry();
     }
 
-    /** Chytré tipy v Nákupním seznamu — čistě podle 7denního trendu, ne dnešní rozjedenosti */
+    /** Chytré tipy v Nákupním seznamu — zobrazí se jen pokud je sledování výživy zapnuté */
     function renderShoppingNutrientTips() {
       const card = document.getElementById('shoppingNutrientTipsCard');
-      const summary = getSevenDayMicroSummary();
+      if (!isNutritionEnabled()) {
+        card.classList.add('hidden');
+        return;
+      }
 
+      const summary = getSevenDayMicroSummary();
       if (summary.loggedDaysCount === 0) {
         card.classList.add('hidden');
         return;
@@ -2795,35 +3042,66 @@
 
     /* --- ZÁLOŽKA 2: PLÁN --- */
     function renderPlan() {
+      const nutrOn = isNutritionEnabled();
       const container = document.getElementById('planDaysList');
       container.innerHTML = DAYS.map((dayName, dayIdx) => {
         const entries = state.plan[dayIdx] || [];
         const entriesHtml = entries.map(entry => {
+          // Položka z uvařených zásob (suroviny se už nekupují)
+          if (entry.cookedBatchName) {
+            return `
+              <div class="flex items-center justify-between gap-2 bg-sage-tint/55 rounded-xl px-3 py-2 border border-sage-soft/70">
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium text-sage-ink truncate">🍲 ${escapeHtml(entry.cookedBatchName)}</div>
+                  <div class="text-[11px] text-sage-dark font-medium mt-0.5">
+                    Z uvařených zásob (bez nákupu surovin)
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    data-action="remove-plan-entry"
+                    data-day="${dayIdx}"
+                    data-entry="${escapeHtml(entry.id)}"
+                    aria-label="Odebrat jídlo"
+                    class="w-7 h-7 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center transition"
+                  >✕</button>
+                </div>
+              </div>
+            `;
+          }
+
           const rec = state.recipes.find(r => r.id === entry.recipeId);
           if (!rec) return '';
           const ev = evaluateRecipe(rec);
           const perServing = calculateRecipeNutrientsPerServing(rec);
+          const batchBadge = entry.batchLabel
+            ? `<span class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-sage-tint text-sage-dark mr-1">den ${escapeHtml(entry.batchLabel)}</span>`
+            : '';
+
           return `
             <div class="flex items-center justify-between gap-2 bg-sage-bg rounded-xl px-3 py-2 border border-sage-border/80">
               <div class="min-w-0 flex-1">
-                <div class="text-sm font-medium text-sage-ink truncate">${escapeHtml(rec.name)}</div>
+                <div class="text-sm font-medium text-sage-ink truncate">${batchBadge}${escapeHtml(rec.name)}</div>
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] mt-0.5">
                   <span class="${ev.canCook ? 'text-sage-dark font-semibold' : 'text-ochre'}">
                     ${ev.canCook ? '✓ Máš vše doma' : `Máš ${ev.haveCount} z ${ev.totalCount} surovin`}
                   </span>
-                  <span class="text-sage-muted">• ~${formatInt(perServing.kcal)} kcal, ${Math.round(perServing.protein)} g B</span>
+                  ${nutrOn ? `<span class="text-sage-muted">• ~${formatInt(perServing.kcal)} kcal, ${Math.round(perServing.protein)} g B</span>` : ''}
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  data-action="quick-eat-recipe"
-                  data-recipe-id="${escapeHtml(rec.id)}"
-                  title="Zapsat jako snědené do dnešní výživy"
-                  class="px-2.5 py-1 rounded-lg bg-white hover:bg-sage-tint border border-sage-border text-[11px] font-semibold text-sage-dark transition"
-                >
-                  ✓ Snědeno
-                </button>
+                ${nutrOn ? `
+                  <button
+                    type="button"
+                    data-action="quick-eat-recipe"
+                    data-recipe-id="${escapeHtml(rec.id)}"
+                    title="Zapsat jako snědené do dnešní výživy"
+                    class="px-2.5 py-1 rounded-lg bg-white hover:bg-sage-tint border border-sage-border text-[11px] font-semibold text-sage-dark transition"
+                  >
+                    ✓ Snědeno
+                  </button>
+                ` : ''}
                 <button
                   type="button"
                   data-action="remove-plan-entry"
@@ -2859,16 +3137,25 @@
     function addPlanToShopping() {
       const subtractPantry = document.getElementById('planSubtractPantryToggle').checked;
       const aggregated = new Map();
+      const countedBatchGroups = new Set();
 
       let plannedCount = 0;
       for (let d = 0; d < 7; d++) {
         (state.plan[d] || []).forEach(entry => {
+          // Položky z již uvařených zásob se do nákupu nedávají
+          if (entry.cookedBatchName) return;
+
+          // Vícedenní dávku jednoho vaření započítáme do nákupu jen jednou!
+          if (entry.batchGroupId) {
+            if (countedBatchGroups.has(entry.batchGroupId)) return;
+            countedBatchGroups.add(entry.batchGroupId);
+          }
+
           const rec = state.recipes.find(r => r.id === entry.recipeId);
           if (!rec) return;
           plannedCount++;
           (rec.ingredients || []).forEach(ing => {
-            const clean = cleanRawPhrase(ing.name);
-            if (clean === 'voda' || clean === 'vody') return;
+            if (isKitchenStapleOrSpice(ing.name)) return;
 
             const key = getCanonicalKey(ing.name);
             const info = getUnitInfo(ing.unit);
@@ -2892,7 +3179,7 @@
       }
 
       if (plannedCount === 0) {
-        showToast('V plánu zatím nemáš žádný recept.');
+        showToast('V plánu nemáš žádný recept k dokoupení surovin.');
         return;
       }
 
@@ -2928,8 +3215,9 @@
       }
     }
 
-    /* --- ZÁLOŽKA 3: RECEPTY --- */
+    /* --- ZÁLOŽKA 3: RECEPTY (S rychlou výměnou suroviny ⇄ a uložením do zásoby) --- */
     function renderRecipes() {
+      const nutrOn = isNutritionEnabled();
       const query = cleanRawPhrase(document.getElementById('recipeSearchInput').value);
 
       document.querySelectorAll('.recipe-filter-btn').forEach(btn => {
@@ -2978,8 +3266,11 @@
           ? `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sage-tint text-sage-dark border border-sage-soft">✓ Máš vše doma</span>`
           : `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-ochre-bg text-ochre border border-ochre-border">Máš ${haveCount} z ${totalCount} surovin</span>`;
 
-        const ingredientsHtml = details.map(({ ing, match }) => {
+        const ingredientsHtml = details.map(({ ing, match }, ingIdx) => {
           const matchedNamesText = match.matchedNames.join(' + ');
+          const swapKey = `rec:${recipe.id}:${ingIdx}`;
+          const isSwappingThis = activeSwapTarget === swapKey;
+
           let iconHtml = '';
           let statusLineHtml = '';
 
@@ -3024,6 +3315,33 @@
             `;
           }
 
+          const swapBoxHtml = isSwappingThis ? `
+            <div class="mt-2 ml-7 bg-sage-bg border border-sage-soft rounded-xl p-2 flex items-center gap-1.5">
+              <input
+                type="text"
+                id="activeSwapInput"
+                data-swap-unit="${escapeHtml(ing.unit)}"
+                placeholder="Vyměnit ${escapeHtml(ing.name)} za (např. cuketa)..."
+                autocomplete="off"
+                class="flex-1 min-w-0 h-9 px-2.5 rounded-lg bg-white border border-sage-border text-xs text-sage-ink focus:outline-none focus:border-sage"
+              >
+              <button
+                type="button"
+                data-action="confirm-swap-recipe-ing"
+                data-recipe-id="${escapeHtml(recipe.id)}"
+                data-ing-idx="${ingIdx}"
+                class="h-9 px-3 rounded-lg bg-sage hover:bg-sage-dark text-white text-xs font-semibold shrink-0"
+              >
+                OK
+              </button>
+              <button
+                type="button"
+                data-action="cancel-swap"
+                class="w-8 h-9 rounded-lg text-sage-muted hover:bg-sage-tint text-xs shrink-0"
+              >✕</button>
+            </div>
+          ` : '';
+
           return `
             <li class="py-2 border-b border-sage-border/60 last:border-b-0">
               <div class="flex items-center justify-between gap-2">
@@ -3031,9 +3349,21 @@
                   ${iconHtml}
                   <span class="text-sm text-sage-ink font-medium truncate">${escapeHtml(ing.name)}</span>
                 </div>
-                <span class="text-xs font-semibold text-sage-muted shrink-0">${escapeHtml(formatAmount(ing.amount))} ${escapeHtml(ing.unit)}</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="text-xs font-semibold text-sage-muted">${escapeHtml(formatAmount(ing.amount))} ${escapeHtml(ing.unit)}</span>
+                  <button
+                    type="button"
+                    data-action="toggle-swap-recipe-ing"
+                    data-recipe-id="${escapeHtml(recipe.id)}"
+                    data-ing-idx="${ingIdx}"
+                    title="Vyměnit tuto surovinu za jinou"
+                    aria-label="Vyměnit surovinu"
+                    class="w-7 h-7 rounded-lg bg-sage-bg hover:bg-sage-tint border border-sage-border text-sage-dark text-xs font-bold flex items-center justify-center transition"
+                  >⇄</button>
+                </div>
               </div>
               ${statusLineHtml}
+              ${swapBoxHtml}
             </li>
           `;
         }).join('');
@@ -3042,7 +3372,7 @@
         const metaPills = [
           recipe.prepTime ? `⏱ ${escapeHtml(recipe.prepTime)}` : '',
           recipe.servings ? `🍽 ${escapeHtml(recipe.servings)} porce` : '',
-          `~${formatInt(perServing.kcal)} kcal / porce (${Math.round(perServing.protein)} g B)`
+          nutrOn ? `~${formatInt(perServing.kcal)} kcal / porce (${Math.round(perServing.protein)} g B)` : ''
         ].filter(Boolean);
 
         return `
@@ -3066,7 +3396,10 @@
             ${isOpen ? `
               <div class="px-4 pb-4 pt-1 border-t border-sage-border/70">
                 ${recipe.note ? `<p class="text-xs text-sage-muted bg-sage-bg rounded-xl px-3 py-2 my-2 border border-sage-border/80 leading-relaxed">${escapeHtml(recipe.note)}</p>` : ''}
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-sage-muted mt-2 mb-1">Suroviny</div>
+                <div class="flex items-center justify-between mt-2 mb-1">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider text-sage-muted">Suroviny</span>
+                  <span class="text-[10px] text-sage-muted">Klepni na ⇄ pro výměnu suroviny</span>
+                </div>
                 <ul class="mb-3">${ingredientsHtml}</ul>
                 ${stepsList.length > 0 ? `
                   <div class="mb-3.5 bg-sage-bg rounded-xl p-3 border border-sage-border/80">
@@ -3097,12 +3430,23 @@
                   </button>
                   <button
                     type="button"
-                    data-action="quick-eat-recipe"
-                    data-recipe-id="${escapeHtml(recipe.id)}"
+                    data-action="open-cook-batch-recipe"
+                    data-id="${escapeHtml(recipe.id)}"
+                    title="Uložit uvařené porce do Doma (např. na 4 nebo 10 porcí)"
                     class="h-[42px] px-3 rounded-xl bg-sage-tint hover:bg-sage text-sage-dark hover:text-white border border-sage-soft text-xs font-semibold transition"
                   >
-                    ✓ Snědeno
+                    🍲 Uvařit do zásoby
                   </button>
+                  ${nutrOn ? `
+                    <button
+                      type="button"
+                      data-action="quick-eat-recipe"
+                      data-recipe-id="${escapeHtml(recipe.id)}"
+                      class="h-[42px] px-3 rounded-xl bg-sage-bg hover:bg-sage-tint border border-sage-border text-sage-dark text-xs font-semibold transition"
+                    >
+                      ✓ Snědeno
+                    </button>
+                  ` : ''}
                   <button
                     type="button"
                     data-action="edit-recipe"
@@ -3129,9 +3473,78 @@
           </div>
         `;
       }).join('');
+
+      bindActiveSwapInputAutocomplete();
     }
 
-    /* --- ZÁLOŽKA 4: DOMA --- */
+    function bindActiveSwapInputAutocomplete() {
+      const inp = document.getElementById('activeSwapInput');
+      if (!inp) return;
+      attachAutocomplete(inp, (sel) => {
+        inp.value = sel.name;
+        inp.dataset.selectedCatalogUnit = sel.unit || '';
+      });
+      setTimeout(() => inp.focus(), 20);
+    }
+
+    /* --- ZÁLOŽKA 4: DOMA (Hotová jídla do zásoby + suroviny) --- */
+    function renderCookedBatches() {
+      const nutrOn = isNutritionEnabled();
+      const list = document.getElementById('cookedBatchesList');
+      if (!state.cookedBatches || state.cookedBatches.length === 0) {
+        list.innerHTML = `<p class="text-xs text-sage-muted/80 italic">Zatím tu nemáš žádné uvařené porce. Přidej si třeba vývar nebo zbytky od oběda.</p>`;
+        return;
+      }
+
+      list.innerHTML = state.cookedBatches.map(batch => {
+        const kcal = Math.round(batch.perServingNutrients?.kcal || 0);
+        const prot = Math.round(batch.perServingNutrients?.protein || 0);
+        return `
+          <div class="bg-sage-bg rounded-xl px-3 py-2.5 border border-sage-border/80 flex items-center justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs sm:text-sm font-semibold text-sage-ink truncate">${escapeHtml(batch.name)}</div>
+              <div class="text-[11px] text-sage-dark font-medium mt-0.5">
+                Zbývá: <strong>${formatAmount(batch.portions)} ${Number(batch.portions) === 1 ? 'porce' : Number(batch.portions) < 5 ? 'porce' : 'porcí'}</strong>
+                ${nutrOn && kcal > 0 ? `<span class="text-sage-muted font-normal"> • ~${formatInt(kcal)} kcal, ${prot} g B / porce</span>` : ''}
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                data-batch-action="dec"
+                data-id="${escapeHtml(batch.id)}"
+                aria-label="Ubrat porci"
+                class="w-8 h-8 rounded-lg bg-white hover:bg-sage-tint border border-sage-border text-sage-dark font-bold text-xs active:scale-95 transition"
+              >−</button>
+              <button
+                type="button"
+                data-batch-action="inc"
+                data-id="${escapeHtml(batch.id)}"
+                aria-label="Přidat porci"
+                class="w-8 h-8 rounded-lg bg-white hover:bg-sage-tint border border-sage-border text-sage-dark font-bold text-xs active:scale-95 transition"
+              >+</button>
+              <button
+                type="button"
+                data-batch-action="eat-one"
+                data-id="${escapeHtml(batch.id)}"
+                class="h-8 px-2.5 rounded-lg bg-sage hover:bg-sage-dark text-white text-[11px] font-semibold shadow-sm active:scale-95 transition"
+              >
+                ✓ Sníst 1
+              </button>
+              <button
+                type="button"
+                data-batch-action="delete"
+                data-id="${escapeHtml(batch.id)}"
+                aria-label="Smazat dávku"
+                class="w-7 h-8 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center transition"
+              >✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function renderQuickStaples() {
       const grid = document.getElementById('quickStaplesGrid');
       grid.innerHTML = QUICK_STAPLES.map((st, idx) => `
@@ -3146,6 +3559,7 @@
     }
 
     function renderPantry() {
+      renderCookedBatches();
       document.getElementById('unificationCountBadge').textContent = `${state.unificationGroups.length} skupin`;
 
       document.querySelectorAll('.pantry-loc-btn').forEach(btn => {
@@ -3329,39 +3743,83 @@
       openModal('recipeFormModal');
     }
 
-    /* --- MODÁL: VÝBĚR RECEPTU DO PLÁNU --- */
+    /* --- MODÁL: VÝBĚR RECEPTU NEBO UVAŘENÉ ZÁSOBY DO PLÁNU --- */
+    function syncPlanPickerSpanUI() {
+      document.querySelectorAll('.plan-span-btn').forEach(btn => {
+        const active = Number(btn.dataset.planSpan) === planPickerSpanDays;
+        btn.className = `plan-span-btn px-2.5 py-1 rounded-lg text-xs transition ${
+          active
+            ? 'bg-sage text-white font-semibold'
+            : 'bg-white border border-sage-border text-sage-ink font-medium'
+        }`;
+      });
+    }
+
     function renderPlanPickerList() {
       const q = cleanRawPhrase(document.getElementById('planPickerSearch').value);
       const list = document.getElementById('planPickerList');
-      const filtered = state.recipes.filter(r => !q || cleanRawPhrase(r.name).includes(q));
 
-      if (filtered.length === 0) {
-        list.innerHTML = `<p class="text-xs text-sage-muted text-center py-6">Žádný recept nenalezen.</p>`;
+      const matchingBatches = (state.cookedBatches || []).filter(b =>
+        Number(b.portions) > 0 && (!q || cleanRawPhrase(b.name).includes(q))
+      );
+
+      const filteredRecipes = state.recipes.filter(r => !q || cleanRawPhrase(r.name).includes(q));
+
+      if (matchingBatches.length === 0 && filteredRecipes.length === 0) {
+        list.innerHTML = `<p class="text-xs text-sage-muted text-center py-6">Žádné jídlo nenalezeno.</p>`;
         return;
       }
 
-      list.innerHTML = filtered.map(rec => {
-        const ev = evaluateRecipe(rec);
-        return `
+      let html = '';
+
+      if (matchingBatches.length > 0) {
+        html += `<div class="text-[11px] font-bold uppercase tracking-wider text-sage-dark px-1 pt-0.5">🍲 Z uvařených zásob doma (už nekupuješ)</div>`;
+        html += matchingBatches.map(b => `
           <button
             type="button"
-            data-pick-recipe="${escapeHtml(rec.id)}"
-            class="w-full text-left p-3 rounded-2xl bg-sage-bg hover:bg-sage-tint/70 border border-sage-border transition flex items-center justify-between gap-2"
+            data-pick-cooked-batch="${escapeHtml(b.id)}"
+            class="w-full text-left p-3 rounded-2xl bg-sage-tint/60 hover:bg-sage-tint border border-sage-soft transition flex items-center justify-between gap-2"
           >
             <div class="min-w-0">
-              <div class="text-sm font-semibold text-sage-ink truncate">${escapeHtml(rec.name)}</div>
-              <div class="text-xs ${ev.canCook ? 'text-sage-dark font-medium' : 'text-ochre'} mt-0.5">
-                ${ev.canCook ? '✓ Máš vše doma' : `Máš ${ev.haveCount} z ${ev.totalCount} surovin`}
+              <div class="text-sm font-semibold text-sage-ink truncate">🍲 ${escapeHtml(b.name)}</div>
+              <div class="text-xs text-sage-dark font-medium mt-0.5">
+                Doma uvařeno ${formatAmount(b.portions)} porcí • nepřidá se do nákupu
               </div>
             </div>
             <span class="text-xs font-semibold text-sage-dark shrink-0">+ Vybrat</span>
           </button>
-        `;
-      }).join('');
+        `).join('');
+      }
+
+      if (filteredRecipes.length > 0) {
+        html += `<div class="text-[11px] font-bold uppercase tracking-wider text-sage-muted px-1 pt-2">📖 Recepty k uvaření</div>`;
+        html += filteredRecipes.map(rec => {
+          const ev = evaluateRecipe(rec);
+          return `
+            <button
+              type="button"
+              data-pick-recipe="${escapeHtml(rec.id)}"
+              class="w-full text-left p-3 rounded-2xl bg-sage-bg hover:bg-sage-tint/70 border border-sage-border transition flex items-center justify-between gap-2"
+            >
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-sage-ink truncate">${escapeHtml(rec.name)}</div>
+                <div class="text-xs ${ev.canCook ? 'text-sage-dark font-medium' : 'text-ochre'} mt-0.5">
+                  ${ev.canCook ? '✓ Máš vše doma' : `Máš ${ev.haveCount} z ${ev.totalCount} surovin`}
+                </div>
+              </div>
+              <span class="text-xs font-semibold text-sage-dark shrink-0">+ ${planPickerSpanDays > 1 ? `Na ${planPickerSpanDays} dny` : 'Vybrat'}</span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      list.innerHTML = html;
     }
 
     function openPlanPickerModal(dayIdx) {
       pickingPlanDay = dayIdx;
+      planPickerSpanDays = 1;
+      syncPlanPickerSpanUI();
       document.getElementById('planPickerTitle').textContent = `Přidat jídlo na ${DAYS[dayIdx]}`;
       document.getElementById('planPickerSearch').value = '';
       renderPlanPickerList();
@@ -3369,7 +3827,7 @@
     }
 
     /* ==========================================================================
-       12. VYKRESLOVÁNÍ VÝŽIVOVÉHO PŘEHLEDU, PROFILU CÍLŮ A „SNĚDENO“
+       12. VYKRESLOVÁNÍ VÝŽIVOVÉHO PŘEHLEDU, PROFILU CÍLŮ, „SNĚDENO“ A „DO ZÁSOBY“
        ========================================================================== */
     const GOAL_MODE_LABELS = {
       gain:     'Zdravé nabírání',
@@ -3378,20 +3836,26 @@
     };
 
     function renderNutritionModal() {
+      const enabled = isNutritionEnabled();
+      document.getElementById('toggleNutritionEnabledCheckbox').checked = enabled;
+      document.getElementById('nutritionDisabledBanner').classList.toggle('hidden', enabled);
+      document.getElementById('nutritionActiveBody').classList.toggle('hidden', !enabled);
+
       const profile = state.nutritionProfile || getDefaultNutritionProfile();
       const targets = profile.targets;
       const goalMode = profile.goalMode || 'gain';
 
-      document.getElementById('nutritionGoalModeSubtitle').textContent =
-        `Režim: ${GOAL_MODE_LABELS[goalMode] || 'Zdravé nabírání'} • cíl ${formatInt(targets.kcal)} kcal, ${targets.protein} g bílkovin`;
+      document.getElementById('nutritionGoalModeSubtitle').textContent = enabled
+        ? `Režim: ${GOAL_MODE_LABELS[goalMode] || 'Zdravé nabírání'} • cíl ${formatInt(targets.kcal)} kcal, ${targets.protein} g bílkovin`
+        : 'Sledování kalorií a živin je teď vypnuté';
 
-      // Datum
+      if (!enabled) return;
+
       const dateInfo = formatDateCzech(selectedNutritionDate);
       document.getElementById('nutrSelectedDateLabel').textContent = dateInfo.title;
       document.getElementById('nutrSelectedDateSub').textContent = dateInfo.sub;
       document.getElementById('nutrNextDayBtn').disabled = selectedNutritionDate >= getLocalDateKey(0);
 
-      // Štítky chodu v AI rychlém zápisu
       document.querySelectorAll('.nutr-meal-tag').forEach(btn => {
         const active = btn.dataset.mealTag === selectedMealTag;
         btn.className = `nutr-meal-tag px-2.5 py-1 rounded-full text-[11px] transition ${
@@ -3401,10 +3865,8 @@
         }`;
       });
 
-      // Součty dne
       const { entries, totals } = getDayTotals(selectedNutritionDate);
 
-      // Energie
       const kcalDone = Math.round(totals.kcal);
       const kcalTarget = Math.max(100, Math.round(targets.kcal));
       const kcalPct = Math.min(100, Math.round((kcalDone / kcalTarget) * 100));
@@ -3436,7 +3898,6 @@
         document.getElementById('nutrKcalHint').className = 'text-xs text-sage-muted mt-1';
       }
 
-      // Bílkoviny
       const protDone = Math.round(totals.protein);
       const protTarget = Math.max(10, Math.round(targets.protein));
       const protPct = Math.min(100, Math.round((protDone / protTarget) * 100));
@@ -3452,19 +3913,16 @@
         document.getElementById('nutrProteinHint').className = 'text-xs text-sage-dark font-semibold mt-1';
       }
 
-      // Ostatní makra
       document.getElementById('nutrCarbsText').textContent = `${Math.round(totals.carbs)} / ${Math.round(targets.carbs)} g`;
       document.getElementById('nutrFatText').textContent   = `${Math.round(totals.fat)} / ${Math.round(targets.fat)} g`;
       document.getElementById('nutrFiberText').textContent = `${Math.round(totals.fiber)} / ${Math.round(targets.fiber)} g`;
 
-      // Naplnění selectu receptů v zapisovači
       const recSel = document.getElementById('nutrRecipeSelect');
       recSel.innerHTML = state.recipes.map(r => {
         const ps = calculateRecipeNutrientsPerServing(r);
         return `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)} (~${formatInt(ps.kcal)} kcal)</option>`;
       }).join('');
 
-      // 7denní radar mikroživin
       const radar = getSevenDayMicroSummary();
       document.getElementById('nutrRadarSubtitle').textContent = radar.loggedDaysCount > 0
         ? `Průměr za posledních 7 dní (z ${radar.loggedDaysCount} ${radar.loggedDaysCount === 1 ? 'zapsaného dne' : radar.loggedDaysCount < 5 ? 'zapsaných dnů' : 'zapsaných dnů'}) — klepni pro tipy.`
@@ -3502,7 +3960,6 @@
         `;
       }).join('');
 
-      // Detail vybrané mikroživiny
       const detailBox = document.getElementById('nutrMicroDetailBox');
       const activeMicro = radar.items.find(i => i.key === selectedMicroDetailKey);
       if (activeMicro) {
@@ -3523,7 +3980,6 @@
         detailBox.classList.add('hidden');
       }
 
-      // Deník dne
       document.getElementById('nutrDayEntriesCount').textContent = `${entries.length} ${entries.length === 1 ? 'položka' : entries.length < 5 ? 'položky' : 'položek'}`;
       const entriesContainer = document.getElementById('nutrDayEntriesList');
       if (entries.length === 0) {
@@ -3589,6 +4045,7 @@
 
     function openNutritionProfileModal() {
       const p = state.nutritionProfile || getDefaultNutritionProfile();
+      document.getElementById('profEnabledCheckbox').checked = p.enabled !== false;
       draftGoalMode = p.goalMode || 'gain';
       syncProfileGoalButtonsUI();
 
@@ -3631,6 +4088,45 @@
             : 'bg-sage-bg border border-sage-border text-sage-ink hover:bg-sage-tint/50'
         }`;
       });
+    }
+
+    /* --- MODÁL: UVAŘIT DO ZÁSOBY („🍲 Uvařit na více porcí“) --- */
+    function syncCookBatchPresetButtons(val) {
+      document.querySelectorAll('.cook-batch-preset-btn').forEach(btn => {
+        const active = Number(btn.dataset.batchPreset) === Number(val);
+        btn.className = `cook-batch-preset-btn h-9 rounded-xl text-xs transition ${
+          active
+            ? 'bg-sage text-white font-semibold shadow-sm'
+            : 'bg-sage-bg border border-sage-border text-sage-ink font-medium'
+        }`;
+      });
+    }
+
+    function openCookBatchModalForRecipe(recipeId) {
+      const rec = state.recipes.find(r => r.id === recipeId);
+      if (!rec) return;
+      cookBatchRecipeId = rec.id;
+      cookBatchAiIndex = null;
+
+      const defaultPortions = Number(rec.servings) || 4;
+      document.getElementById('cookBatchRecipeTitle').textContent = rec.name;
+      document.getElementById('cookBatchCustomPortionsInput').value = String(defaultPortions);
+      document.getElementById('cookBatchDeductPantryCheckbox').checked = true;
+      syncCookBatchPresetButtons(defaultPortions);
+      openModal('cookBatchModal');
+    }
+
+    function openCookBatchModalForAiRecipe(aiIdx, aiRec) {
+      if (!aiRec) return;
+      cookBatchRecipeId = null;
+      cookBatchAiIndex = aiIdx;
+
+      const defaultPortions = Number(aiRec.servings) || 4;
+      document.getElementById('cookBatchRecipeTitle').textContent = aiRec.name;
+      document.getElementById('cookBatchCustomPortionsInput').value = String(defaultPortions);
+      document.getElementById('cookBatchDeductPantryCheckbox').checked = true;
+      syncCookBatchPresetButtons(defaultPortions);
+      openModal('cookBatchModal');
     }
 
     /* ==========================================================================
@@ -3699,7 +4195,7 @@
       document.getElementById('resetDemoBtn').addEventListener('click', () => {
         askConfirm(
           'Obnovit ukázková data?',
-          'Tvoje aktuální nákupy, plán, zásoby i deník výživy se nahradí výchozí ukázkou (API klíč zůstane zachován).',
+          'Tvoje aktuální nákupy, plán, zásoby i deník se nahradí výchozí ukázkou (API klíč zůstane zachován).',
           () => {
             state = getDefaultState();
             saveState();
@@ -3812,17 +4308,62 @@
         }
       });
 
+      document.querySelectorAll('.plan-span-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          planPickerSpanDays = Number(btn.dataset.planSpan) || 1;
+          syncPlanPickerSpanUI();
+          renderPlanPickerList();
+        });
+      });
+
       document.getElementById('planPickerSearch').addEventListener('input', renderPlanPickerList);
       document.getElementById('planPickerList').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-pick-recipe]');
-        if (!btn || pickingPlanDay === null) return;
-        state.plan[pickingPlanDay].push({ id: uid('pl'), recipeId: btn.dataset.pickRecipe });
+        if (pickingPlanDay === null) return;
+
+        // Výběr z již uvařených zásob
+        const batchBtn = e.target.closest('[data-pick-cooked-batch]');
+        if (batchBtn) {
+          const batch = (state.cookedBatches || []).find(b => b.id === batchBtn.dataset.pickCookedBatch);
+          if (!batch) return;
+          state.plan[pickingPlanDay].push({
+            id: uid('pl'),
+            cookedBatchName: batch.name
+          });
+          saveState();
+          closeModal('planPickerModal');
+          renderPlan();
+          showToast(`Naplánováno ze zásob: ${batch.name}`);
+          return;
+        }
+
+        // Výběr klasického receptu (na 1 až 4 dny)
+        const recBtn = e.target.closest('[data-pick-recipe]');
+        if (!recBtn) return;
+        const recId = recBtn.dataset.pickRecipe;
+        const span = Math.max(1, Math.min(7 - pickingPlanDay, planPickerSpanDays));
+        const batchGroupId = span > 1 ? uid('bg') : null;
+
+        for (let offset = 0; offset < span; offset++) {
+          const targetDay = pickingPlanDay + offset;
+          if (targetDay < 7) {
+            state.plan[targetDay].push({
+              id: uid('pl'),
+              recipeId: recId,
+              batchGroupId,
+              batchLabel: span > 1 ? `${offset + 1}/${span}` : undefined
+            });
+          }
+        }
+
         saveState();
         closeModal('planPickerModal');
         renderPlan();
+        if (span > 1) {
+          showToast(`Naplánováno na ${span} dny (suroviny do nákupu se započítají jen 1×).`);
+        }
       });
 
-      // --- UDÁLOSTI: RECEPTY ---
+      // --- UDÁLOSTI: RECEPTY (včetně inline výměny surovin ⇄ a Uvařit do zásoby) ---
       document.getElementById('recipeSearchInput').addEventListener('input', renderRecipes);
 
       document.querySelectorAll('.recipe-filter-btn').forEach(btn => {
@@ -3862,7 +4403,7 @@
         const note = document.getElementById('recipeNoteInput').value.trim();
         const prepTime = document.getElementById('recipePrepTimeInput').value.trim();
         const servingsRaw = Number(document.getElementById('recipeServingsInput').value);
-        const servings = servingsRaw > 0 ? servingsRaw : 2;
+        const servings = servingsRaw > 0 ? servingsRaw : 4;
         const steps = document.getElementById('recipeStepsInput').value
           .split(/\r?\n/)
           .map(s => s.replace(/^\d+[.)]\s*/, '').trim())
@@ -3912,8 +4453,46 @@
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) return;
 
-        if (actionEl.dataset.action === 'quick-eat-recipe') {
+        const act = actionEl.dataset.action;
+
+        if (act === 'quick-eat-recipe') {
           openQuickEatModal(actionEl.dataset.recipeId);
+          return;
+        }
+
+        if (act === 'cancel-swap') {
+          activeSwapTarget = null;
+          closeAutocomplete();
+          renderRecipes();
+          return;
+        }
+
+        if (act === 'toggle-swap-recipe-ing') {
+          const recId = actionEl.dataset.recipeId;
+          const idx = Number(actionEl.dataset.ingIdx);
+          const key = `rec:${recId}:${idx}`;
+          activeSwapTarget = activeSwapTarget === key ? null : key;
+          closeAutocomplete();
+          renderRecipes();
+          return;
+        }
+
+        if (act === 'confirm-swap-recipe-ing') {
+          const recId = actionEl.dataset.recipeId;
+          const idx = Number(actionEl.dataset.ingIdx);
+          const rec = state.recipes.find(r => r.id === recId);
+          const inp = document.getElementById('activeSwapInput');
+          const newName = capitalizeFirst((inp?.value || '').trim());
+          if (!rec || !newName || !rec.ingredients[idx]) return;
+
+          const oldName = rec.ingredients[idx].name;
+          rec.ingredients[idx].name = newName;
+          delete rec.aiNutritionPerServing;
+          activeSwapTarget = null;
+          closeAutocomplete();
+          saveState();
+          renderRecipes();
+          showToast(`Vyměněno: ${oldName} → ${newName}`);
           return;
         }
 
@@ -3921,11 +4500,14 @@
         const recipe = state.recipes.find(r => r.id === id);
         if (!recipe) return;
 
-        if (actionEl.dataset.action === 'toggle-recipe') {
+        if (act === 'toggle-recipe') {
           if (openRecipeIds.has(id)) openRecipeIds.delete(id);
           else openRecipeIds.add(id);
+          activeSwapTarget = null;
           renderRecipes();
-        } else if (actionEl.dataset.action === 'add-missing-from-recipe') {
+        } else if (act === 'open-cook-batch-recipe') {
+          openCookBatchModalForRecipe(id);
+        } else if (act === 'add-missing-from-recipe') {
           const ev = evaluateRecipe(recipe);
           let added = 0;
           ev.details.forEach(({ ing, match }) => {
@@ -3942,9 +4524,9 @@
             updateShoppingBadge();
             showToast(`Přidáno do nákupu: ${added} chybějících surovin.`);
           }
-        } else if (actionEl.dataset.action === 'edit-recipe') {
+        } else if (act === 'edit-recipe') {
           openRecipeModal(recipe);
-        } else if (actionEl.dataset.action === 'delete-recipe') {
+        } else if (act === 'delete-recipe') {
           askConfirm('Smazat recept?', `Opravdu chceš smazat recept „${recipe.name}“?`, () => {
             state.recipes = state.recipes.filter(r => r.id !== id);
             for (let d = 0; d < 7; d++) {
@@ -3958,7 +4540,129 @@
         }
       });
 
-      // --- UDÁLOSTI: DOMA + SJEDNOCENÍ SUROVIN ---
+      document.getElementById('recipesList').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target?.id === 'activeSwapInput') {
+          e.preventDefault();
+          const btn = e.target.parentElement?.querySelector('[data-action="confirm-swap-recipe-ing"]');
+          if (btn) btn.click();
+        }
+      });
+
+      // --- UDÁLOSTI: HOTOVÁ JÍDLA DO ZÁSOBY & DOMA ---
+      document.getElementById('toggleAddCookedBatchBtn').addEventListener('click', () => {
+        document.getElementById('addCookedBatchForm').classList.toggle('hidden');
+      });
+
+      document.getElementById('addCookedBatchForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nameInp = document.getElementById('cookedBatchNameInput');
+        const portionsInp = document.getElementById('cookedBatchPortionsInput');
+        const name = nameInp.value.trim();
+        const portions = Number(portionsInp.value) || 4;
+        if (!name || portions <= 0) return;
+
+        addOrMergeCookedBatch(name, portions);
+        nameInp.value = '';
+        portionsInp.value = '4';
+        document.getElementById('addCookedBatchForm').classList.add('hidden');
+        saveState();
+        renderCookedBatches();
+        showToast(`Uloženo do uvařených zásob: ${capitalizeFirst(name)} (${formatAmount(portions)} porcí)`);
+      });
+
+      document.getElementById('cookedBatchesList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-batch-action]');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const batch = (state.cookedBatches || []).find(b => b.id === id);
+        if (!batch) return;
+
+        const act = btn.dataset.batchAction;
+        if (act === 'inc') {
+          batch.portions = Math.round((Number(batch.portions) + 1) * 10) / 10;
+          saveState();
+          renderCookedBatches();
+        } else if (act === 'dec') {
+          const next = Math.round((Number(batch.portions) - 1) * 10) / 10;
+          if (next <= 0) {
+            state.cookedBatches = state.cookedBatches.filter(b => b.id !== id);
+            showToast(`Snědeno vše: ${batch.name}`);
+          } else {
+            batch.portions = next;
+          }
+          saveState();
+          renderCookedBatches();
+        } else if (act === 'eat-one') {
+          const next = Math.round((Number(batch.portions) - 1) * 10) / 10;
+          if (next <= 0) {
+            state.cookedBatches = state.cookedBatches.filter(b => b.id !== id);
+          } else {
+            batch.portions = next;
+          }
+
+          if (isNutritionEnabled()) {
+            const nutr = batch.perServingNutrients || calculateIngredientNutrients(batch.name, 250, 'g');
+            state.foodLog.unshift({
+              id: uid('fl'),
+              date: getLocalDateKey(0),
+              name: batch.name,
+              subtitle: '1 porce ze zásob',
+              nutrients: addNutrients(emptyNutrients(), nutr, 1)
+            });
+            showToast(`Snědena 1 porce: ${batch.name} (~${formatInt(nutr.kcal)} kcal)`);
+          } else {
+            showToast(`Odečtena 1 porce: ${batch.name}`);
+          }
+
+          saveState();
+          renderCookedBatches();
+        } else if (act === 'delete') {
+          state.cookedBatches = state.cookedBatches.filter(b => b.id !== id);
+          saveState();
+          renderCookedBatches();
+        }
+      });
+
+      // Modál Uvařit do zásoby
+      document.querySelectorAll('.cook-batch-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = Number(btn.dataset.batchPreset) || 4;
+          document.getElementById('cookBatchCustomPortionsInput').value = String(val);
+          syncCookBatchPresetButtons(val);
+        });
+      });
+
+      document.getElementById('cookBatchCustomPortionsInput').addEventListener('input', (e) => {
+        syncCookBatchPresetButtons(Number(e.target.value));
+      });
+
+      document.getElementById('confirmCookBatchBtn').addEventListener('click', () => {
+        const portions = Number(document.getElementById('cookBatchCustomPortionsInput').value) || 4;
+        const deductPantry = document.getElementById('cookBatchDeductPantryCheckbox').checked;
+
+        let targetRec = null;
+        if (cookBatchRecipeId) {
+          targetRec = state.recipes.find(r => r.id === cookBatchRecipeId);
+        } else if (cookBatchAiIndex !== null) {
+          targetRec = aiChefState.results[cookBatchAiIndex];
+        }
+
+        if (!targetRec || portions <= 0) return;
+
+        const perServing = calculateRecipeNutrientsPerServing(targetRec);
+        addOrMergeCookedBatch(targetRec.name, portions, targetRec.id || null, perServing);
+
+        if (deductPantry) {
+          deductRecipeIngredientsFromPantry(targetRec, portions);
+          if (activeTab === 'pantry') renderPantry();
+          if (activeTab === 'recipes') renderRecipes();
+        }
+
+        saveState();
+        closeModal('cookBatchModal');
+        showToast(`🍲 Uloženo do zásob Doma: ${targetRec.name} (${formatAmount(portions)} porcí)`);
+      });
+
       document.getElementById('pantryForm').addEventListener('submit', (e) => {
         e.preventDefault();
         closeAutocomplete();
@@ -4103,10 +4807,31 @@
       });
 
       /* ======================================================================
-         14. UDÁLOSTI PRO VÝŽIVOVÝ PŘEHLED, PROFIL CÍLŮ, „SNĚDENO“ A ZÁLOHU DAT
+         14. UDÁLOSTI PRO VÝŽIVOVÝ PŘEHLED, PŘEPÍNAČ ZAP/VYP, PROFIL A ZÁLOHU
          ====================================================================== */
       document.getElementById('openNutritionBtn').addEventListener('click', openNutritionModal);
       document.getElementById('openNutritionProfileBtn').addEventListener('click', openNutritionProfileModal);
+
+      function setNutritionEnabled(val) {
+        if (!state.nutritionProfile) state.nutritionProfile = getDefaultNutritionProfile();
+        state.nutritionProfile.enabled = Boolean(val);
+        saveState();
+        updateNutritionHeaderIndicator();
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        if (activeTab === 'recipes') renderRecipes();
+        if (activeTab === 'plan') renderPlan();
+        if (activeTab === 'pantry') renderPantry();
+        showToast(val ? 'Sledování kalorií a živin bylo zapnuto.' : 'Počítání kalorií a živin je teď vypnuté.');
+      }
+
+      document.getElementById('toggleNutritionEnabledCheckbox').addEventListener('change', (e) => {
+        setNutritionEnabled(e.target.checked);
+      });
+
+      document.getElementById('enableNutritionQuickBtn').addEventListener('click', () => {
+        setNutritionEnabled(true);
+      });
 
       document.getElementById('nutrPrevDayBtn').addEventListener('click', () => {
         const [y, m, d] = selectedNutritionDate.split('-').map(Number);
@@ -4125,7 +4850,6 @@
         renderNutritionModal();
       });
 
-      // Volitelné štítky chodu (Snídaně / Svačina / Oběd / Večeře)
       document.getElementById('nutrMealTagChips').addEventListener('click', (e) => {
         const btn = e.target.closest('.nutr-meal-tag');
         if (!btn) return;
@@ -4134,7 +4858,6 @@
         renderNutritionModal();
       });
 
-      // Přepínač 3 způsobů zápisu jídla
       document.querySelectorAll('.nutr-log-tab').forEach(btn => {
         btn.addEventListener('click', () => {
           selectedNutritionLogMode = btn.dataset.logMode;
@@ -4150,7 +4873,6 @@
         });
       });
 
-      // Zápis z receptu uvnitř modálu Výživy
       document.getElementById('logFromRecipeBtn').addEventListener('click', () => {
         const recId = document.getElementById('nutrRecipeSelect').value;
         const portion = Number(document.getElementById('nutrRecipePortionSelect').value) || 1;
@@ -4174,7 +4896,6 @@
         showToast(`Zapsáno: ${rec.name} (~${formatInt(scaled.kcal)} kcal)`);
       });
 
-      // Zápis jedné suroviny (100% offline z katalogu)
       document.getElementById('logSingleIngredientForm').addEventListener('submit', (e) => {
         e.preventDefault();
         closeAutocomplete();
@@ -4203,7 +4924,6 @@
         showToast(`Zapsáno: ${name} (~${formatInt(nutrients.kcal)} kcal)`);
       });
 
-      // Detail mikroživiny po klepnutí v 7denním radaru
       document.getElementById('nutrMicroGrid').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-micro-key]');
         if (!btn) return;
@@ -4231,7 +4951,6 @@
         showToast(`Přidáno do nákupu: ${food}`);
       });
 
-      // Smazání záznamu z deníku dne
       document.getElementById('nutrDayEntriesList').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-delete-food-entry]');
         if (!btn) return;
@@ -4242,7 +4961,6 @@
         if (activeTab === 'shopping') renderShopping();
       });
 
-      // Rychlý modál „✓ Snědeno“ (z Plánu nebo Receptů)
       document.querySelectorAll('.quick-eat-portion-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           quickEatPortion = Number(btn.dataset.eatPortion) || 1;
@@ -4279,7 +4997,6 @@
         showToast(`Snědeno zapsáno: ${rec.name} (~${formatInt(scaled.kcal)} kcal, ${Math.round(scaled.protein)} g B)`);
       });
 
-      // Události: Osobní profil a cíle výživy
       document.querySelectorAll('.prof-goal-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           draftGoalMode = btn.dataset.goalMode;
@@ -4310,6 +5027,7 @@
 
       document.getElementById('nutritionProfileForm').addEventListener('submit', (e) => {
         e.preventDefault();
+        const enabledVal = document.getElementById('profEnabledCheckbox').checked;
         const targets = {
           kcal:      Math.max(1000, Number(document.getElementById('targetKcalInput').value) || 2500),
           protein:   Math.max(30, Number(document.getElementById('targetProteinInput').value) || 120),
@@ -4325,6 +5043,7 @@
         });
 
         state.nutritionProfile = {
+          enabled: enabledVal,
           configured: true,
           goalMode: draftGoalMode,
           sex: document.getElementById('profSexSelect').value,
@@ -4340,14 +5059,17 @@
         closeModal('nutritionProfileModal');
         renderNutritionModal();
         if (activeTab === 'shopping') renderShopping();
-        showToast('Osobní profil a výživové cíle byly uloženy.');
+        if (activeTab === 'recipes') renderRecipes();
+        if (activeTab === 'plan') renderPlan();
+        if (activeTab === 'pantry') renderPantry();
+        showToast('Osobní profil a nastavení byly uloženy.');
       });
 
       // Záloha dat (Export / Import JSON)
       document.getElementById('exportBackupBtn').addEventListener('click', () => {
         const backupPayload = {
           exportedAt: new Date().toISOString(),
-          appVersion: 'v4_nutrition',
+          appVersion: 'v5_batches_swaps',
           data: state
         };
         const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
@@ -4390,7 +5112,7 @@
       });
 
       /* ======================================================================
-         15. NASTAVENÍ AI, AI KUCHAŘ („DOMA“ + „CO TEĎ POTŘEBUJI“) A AI DENÍK
+         15. NASTAVENÍ AI, AI KUCHAŘ (JÍDLA S PŘÍLOHOU + VÝMĚNY ⇄) A AI DENÍK
          ====================================================================== */
       const PREFERRED_GEMINI_MODELS = [
         'gemini-3.5-flash-lite',
@@ -4402,7 +5124,7 @@
       const aiChefState = {
         mode: 'only_home',
         preference: 'Cokoliv',
-        servings: 2,
+        servings: 4,
         results: [],
         savedIndices: new Set(),
         previousTitles: [],
@@ -4641,7 +5363,6 @@
         }
       }
 
-      /** Zápis jídla normální větou přes AI + lokální cache */
       async function logMealFromSentenceWithAi() {
         const input = document.getElementById('nutrAiSentenceInput');
         const sentence = input.value.trim();
@@ -4738,15 +5459,21 @@
         const suffix = count > 4 ? ` a ${count - 4} dalších` : '';
         document.getElementById('aiChefPantrySummary').textContent = count > 0
           ? `Doma máš ${count} ${count === 1 ? 'surovinu' : count < 5 ? 'suroviny' : 'surovin'}: ${preview}${suffix}`
-          : 'Záložka Doma je prázdná — ale režim „Co teď potřebuji“ funguje i tak!';
+          : 'Záložka Doma je prázdná — můžeš vařit podle chuti nebo cílů!';
       }
 
       function syncAiChefControlsUI() {
+        const nutrOn = isNutritionEnabled();
+        const wishHasText = document.getElementById('aiWishInput').value.trim().length > 0;
+
         document.querySelectorAll('.ai-mode-btn').forEach(btn => {
           const active = btn.dataset.aiMode === aiChefState.mode;
           btn.className = `ai-mode-btn py-2.5 px-2.5 rounded-lg text-xs transition leading-tight ${
             active ? 'bg-white text-sage-ink font-semibold shadow-sm' : 'text-sage-muted font-medium'
           }`;
+          if (btn.dataset.aiMode === 'what_i_need') {
+            btn.textContent = nutrOn ? 'Co teď potřebuji' : 'Volný výběr surovin';
+          }
         });
 
         document.querySelectorAll('.ai-pref-chip').forEach(btn => {
@@ -4760,6 +5487,21 @@
 
         document.getElementById('aiServingsValue').textContent = String(aiChefState.servings);
 
+        const noteEl = document.getElementById('aiChefNutritionContextNote');
+        if (wishHasText) {
+          noteEl.textContent = nutrOn
+            ? 'Ke tvé chuti automaticky doladím přílohu: 1. varianta z tvých zásob doma, 2. výživově podle tvých cílů, 3. zajímavý nápad navíc.'
+            : 'Ke tvé chuti automaticky doladím přílohu: 1. varianta z tvých zásob doma, 2. klasická osvědčená kombinace, 3. originální nápad navíc.';
+          return;
+        }
+
+        if (!nutrOn) {
+          noteEl.textContent = aiChefState.mode === 'only_home'
+            ? 'Vymyslím 3 kompletní hotová jídla i s přílohou jen ze surovin, které už máš doma.'
+            : 'Vymyslím 3 kompletní hotová jídla i s přílohou a přednostně využiju suroviny doma.';
+          return;
+        }
+
         const profile = state.nutritionProfile || getDefaultNutritionProfile();
         const goalLabel = GOAL_MODE_LABELS[profile.goalMode] || 'Zdravé nabírání';
         const todayTotals = getDayTotals(getLocalDateKey(0)).totals;
@@ -4768,16 +5510,16 @@
         const radar = getSevenDayMicroSummary();
         const topLacking = radar.lacking.slice(0, 3).map(l => l.label.toLowerCase());
 
-        const noteEl = document.getElementById('aiChefNutritionContextNote');
         if (aiChefState.mode === 'only_home') {
-          noteEl.textContent = `Vařím jen z tvých domácích zásob a ladím jídla pro cíl „${goalLabel}“ (${profile.goalMode === 'gain' ? 'vydatnější kombinace s důrazem na bílkoviny' : 'vyvážené porce'}).`;
+          noteEl.textContent = `Vařím kompletní jídla s přílohou jen z domácích zásob a ladím je pro cíl „${goalLabel}“.`;
         } else {
           const microPart = topLacking.length > 0 ? ` • doplní: ${topLacking.join(', ')}` : '';
-          noteEl.textContent = `Cíl „${goalLabel}“ • dnes zbývá ~${formatInt(remKcal)} kcal a ${remProt} g bílkovin${microPart} (bonusově využiju i suroviny doma).`;
+          noteEl.textContent = `Cíl „${goalLabel}“ • dnes zbývá ~${formatInt(remKcal)} kcal a ${remProt} g bílkovin${microPart}.`;
         }
       }
 
       function openAiChefModal() {
+        activeSwapTarget = null;
         updateAiChefHeaderSummary();
         syncAiChefControlsUI();
         if (aiChefState.results.length > 0) renderAiResults();
@@ -4785,45 +5527,68 @@
       }
 
       async function fetchAiRecipesFromGemini(excludeTitles = []) {
+        const nutrOn = isNutritionEnabled();
         const pantryLines = state.pantry
           .filter(p => Number(p.amount) > 0)
           .map(p => `- ${p.name}: ${formatAmount(p.amount)} ${p.unit}`)
           .join('\n') || '- (zatím prázdná lednice)';
 
-        const profile = state.nutritionProfile || getDefaultNutritionProfile();
-        const goalLabel = GOAL_MODE_LABELS[profile.goalMode] || 'Zdravé nabírání';
-        const todayTotals = getDayTotals(getLocalDateKey(0)).totals;
-        const remKcal = Math.max(0, Math.round(profile.targets.kcal - todayTotals.kcal));
-        const remProt = Math.max(0, Math.round(profile.targets.protein - todayTotals.protein));
-        const radar = getSevenDayMicroSummary();
-        const lackingMicros = radar.lacking.slice(0, 4).map(l => `${l.label} (${l.pct}% cíle)`);
-
         const wish = document.getElementById('aiWishInput').value.trim();
 
-        const goalGuidance = profile.goalMode === 'gain'
-          ? `Uživatel má režim ZDRAVÉ NABÍRÁNÍ (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Nenavrhuj lehké dietní salátky — navrhuj poctivá, sytá, energeticky a bílkovinově vydatná jídla (cca 550–850 kcal a 30–50 g bílkovin na 1 porci).`
-          : profile.goalMode === 'lose'
-            ? `Uživatel má režim LEHKÁ REDUKCE (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Navrhuj sytá jídla s vysokým podílem bílkovin a vlákniny při rozumné energii (cca 380–550 kcal na porci).`
-            : `Uživatel má režim VYVÁŽENOST & UDRŽOVÁNÍ (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Navrhuj vyvážená plnohodnotná jídla.`;
+        let goalGuidance = '';
+        let nutritionContext = '';
+        if (nutrOn) {
+          const profile = state.nutritionProfile || getDefaultNutritionProfile();
+          const goalLabel = GOAL_MODE_LABELS[profile.goalMode] || 'Zdravé nabírání';
+          const todayTotals = getDayTotals(getLocalDateKey(0)).totals;
+          const remKcal = Math.max(0, Math.round(profile.targets.kcal - todayTotals.kcal));
+          const remProt = Math.max(0, Math.round(profile.targets.protein - todayTotals.protein));
+          const radar = getSevenDayMicroSummary();
+          const lackingMicros = radar.lacking.slice(0, 4).map(l => `${l.label} (${l.pct}% cíle)`);
 
-        const modeRule = aiChefState.mode === 'only_home'
-          ? `REŽIM 1 (Z TOHO, CO MÁM DOMA): Navrhni přesně 3 reálné, chutné recepty POUZE ze surovin uvedených v seznamu doma (navíc smíš použít jen naprosté základy: sůl, pepř, běžný olej, základní koření a vodu — vodu do pole ingredients nepiš). Zároveň zohledni profil uživatele (${goalLabel}).`
-          : `REŽIM 2 (CO TEĎ POTŘEBUJI): Neomezuj se na počet surovin k dokoupení! Navrhni přesně 3 plnohodnotné recepty ušité na míru aktuálním výživovým potřebám uživatele: dnes mu zbývá přibližně ${remKcal} kcal a ${remProt} g bílkovin${lackingMicros.length > 0 ? `, dlouhodobě mu chybí tyto vitamíny/minerály: ${lackingMicros.join(', ')}` : ''}. Jako příjemný bonus zakomponuj i některé suroviny, které už má doma.`;
+          goalGuidance = profile.goalMode === 'gain'
+            ? `Uživatel má režim ZDRAVÉ NABÍRÁNÍ (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Nenavrhuj lehké dietní salátky — navrhuj poctivá, sytá, energeticky a bílkovinově vydatná jídla (cca 550–850 kcal a 30–50 g bílkovin na 1 porci).`
+            : profile.goalMode === 'lose'
+              ? `Uživatel má režim LEHKÁ REDUKCE (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Navrhuj sytá jídla s vysokým podílem bílkovin a vlákniny při rozumné energii (cca 380–550 kcal na porci).`
+              : `Uživatel má režim VYVÁŽENOST & UDRŽOVÁNÍ (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Navrhuj vyvážená plnohodnotná jídla.`;
+
+          nutritionContext = `Dnes uživateli zbývá přibližně ${remKcal} kcal a ${remProt} g bílkovin${lackingMicros.length > 0 ? `, dlouhodobě mu chybí tyto vitamíny/minerály: ${lackingMicros.join(', ')}` : ''}.`;
+        }
+
+        let modeRule = '';
+        if (wish) {
+          modeRule = [
+            `HLAVNÍ ZADÁNÍ UŽIVATELE (CHUŤ / ZÁKLAD JÍDLA): "${wish}".`,
+            'Uživatel zadal konkrétní chuť nebo hlavní složku (např. „trhané kuřecí s BBQ“). Všechny 3 recepty MUSÍ vycházet z tohoto zadání a automaticky k němu doladit kompletní recept včetně vhodné přílohy (např. pečené brambory, rýže, batáty, tortilly, domácí bulka, kuskus apod.) a koření:',
+            '- Recept 1 (Z tvých zásob doma): Nakombinuj zadanou chuť s přílohou a surovinami, které už má uživatel doma (koupí jen to hlavní, pokud doma chybí).',
+            nutrOn
+              ? `- Recept 2 (Výživově doladěný): Doladěná varianta s přílohou přesně podle nutričního cíle uživatele (${nutritionContext}).`
+              : '- Recept 2 (Osvědčená klasika): Plnohodnotná, skvěle vyvážená varianta s oblíbenou přílohou.',
+            '- Recept 3 (Zajímavý nápad navíc): Originálnější variace s jinou neotřelou přílohou nebo omáčkou, která uživatele třeba sama nenapadla.'
+          ].join('\n');
+        } else if (aiChefState.mode === 'only_home') {
+          modeRule = `REŽIM 1 (Z TOHO, CO MÁM DOMA): Navrhni přesně 3 kompletní hotové recepty VČETNĚ VHODNÉ PŘÍLOHY pouze ze surovin uvedených v seznamu doma (navíc smíš použít sůl, pepř, běžný olej, veškeré běžné koření a sušené bylinky jako sladká paprika, kmín, oregano, kari, kurkuma, skořice, majoránka, tymián, rozmarýn, chilli apod., a vodu — vodu do pole ingredients nepiš, ale koření do ingredients i postupu uveď).`;
+        } else {
+          modeRule = nutrOn
+            ? `REŽIM 2 (CO TEĎ POTŘEBUJI): Navrhni přesně 3 kompletní plnohodnotné recepty VČETNĚ VHODNÉ PŘÍLOHY ušité na míru aktuálním výživovým potřebám uživatele: ${nutritionContext} Jako bonus zakomponuj i suroviny, které už má doma.`
+            : `REŽIM 2 (VOLNÝ VÝBĚR SUROVIN): Navrhni přesně 3 pestré kompletní domácí recepty VČETNĚ VHODNÉ PŘÍLOHY, přičemž jako bonus využij i suroviny ze seznamu doma.`;
+        }
 
         const prefRule = aiChefState.preference !== 'Cokoliv'
-          ? `Preference jídla: ${aiChefState.preference}.`
-          : 'Typ jídla: praktické domácí jídlo.';
+          ? `Typ jídla: ${aiChefState.preference}.`
+          : 'Typ jídla: praktické kompletní domácí jídlo.';
 
-        const wishRule = wish ? `Speciální přání uživatele: ${wish}.` : '';
         const excludeRule = excludeTitles.length > 0
           ? `NEOPAKUJ tyto už dříve navržené recepty a vymysli 3 úplně jiné nápady: ${excludeTitles.join(', ')}.`
           : '';
 
         const systemInstruction = [
-          'Jsi šikovný český domácí kuchař a výživový poradce. Navrhuješ praktické, chutné a realistické recepty v přirozené češtině.',
+          'Jsi šikovný český domácí kuchař. Navrhuješ praktické, chutné a realistické recepty v přirozené češtině.',
+          'ZÁSADNÍ PRAVIDLO: Každé slané hlavní jídlo skládej jako KOMPLETNÍ HOTOVÉ JÍDLO VČETNĚ VHODNÉ PŘÍLOHY (např. rýže, brambory, batáty, těstoviny, pečivo, tortilly, kuskus) přímo v názvu, v surovinách i v postupu přípravy, aby uživatel nemusel přílohu domýšlet zvlášť.',
           'Všechny názvy surovin v poli ingredients piš v 1. pádě a pokud se surovina nachází v seznamu doma, použij její srozumitelný český název.',
+          'Recepty nezapomeň přirozeně dochutit běžným kořením a sušenými bylinkami (např. sůl, pepř, sladká paprika, kmín, oregano, kari, skořice, kurkuma, majoránka) a uveď je i v seznamu surovin.',
           'Pro jednotky (unit) používej výhradně standardní české jednotky: g, kg, ml, l, ks, lžíce, lžička, hrst, stroužek, plechovka, balení, hrnek, špetka.',
-          'Ke každému receptu vyplň krátký důvod whyNow (1 věta, proč se recept hodí pro jeho cíl a živiny) a orientační hodnoty na 1 porci (kcalPerServing, proteinPerServing, carbsPerServing, fatPerServing).',
+          'Ke každému receptu vyplň krátký důvod whyNow (1 věta, proč se tato kombinace jídla a přílohy skvěle hodí) a orientační hodnoty na 1 porci (kcalPerServing, proteinPerServing, carbsPerServing, fatPerServing).',
           'Vrať VÝHRADNĚ čisté JSON pole přesně 3 objektů receptů.'
         ].join(' ');
 
@@ -4833,8 +5598,7 @@
           '',
           modeRule,
           prefRule,
-          `Počet porcí: ${aiChefState.servings}.`,
-          wishRule,
+          `Počet porcí: ${aiChefState.servings} (přizpůsob tomu gramáže surovin i přílohy).`,
           excludeRule
         ].filter(Boolean).join('\n');
 
@@ -4935,6 +5699,7 @@
       }
 
       function renderAiResults() {
+        const nutrOn = isNutritionEnabled();
         const container = document.getElementById('aiResultsContainer');
         const moreBtn = document.getElementById('aiMoreIdeasBtn');
 
@@ -4958,18 +5723,60 @@
             ? `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-sage-tint text-sage-dark border border-sage-soft">✓ Máš vše doma</span>`
             : `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-ochre-bg text-ochre border border-ochre-border">🛒 Dokoupit ${missingCount} ${missingCount === 1 ? 'věc' : missingCount < 5 ? 'věci' : 'věcí'}: ${escapeHtml(missingNames)}</span>`;
 
-          const ingredientsHtml = evalRes.details.map(({ ing, match }) => {
+          const ingredientsHtml = evalRes.details.map(({ ing, match }, ingIdx) => {
+            const swapKey = `ai:${idx}:${ingIdx}`;
+            const isSwappingThis = activeSwapTarget === swapKey;
+
+            const swapBoxHtml = isSwappingThis ? `
+              <div class="mt-1.5 bg-white border border-sage-soft rounded-xl p-1.5 flex items-center gap-1.5">
+                <input
+                  type="text"
+                  id="activeSwapInput"
+                  placeholder="Vyměnit ${escapeHtml(ing.name)} za..."
+                  autocomplete="off"
+                  class="flex-1 min-w-0 h-8 px-2.5 rounded-lg bg-sage-bg border border-sage-border text-xs text-sage-ink focus:outline-none focus:bg-white focus:border-sage"
+                >
+                <button
+                  type="button"
+                  data-action="confirm-swap-ai-ing"
+                  data-idx="${idx}"
+                  data-ing-idx="${ingIdx}"
+                  class="h-8 px-2.5 rounded-lg bg-sage hover:bg-sage-dark text-white text-xs font-semibold shrink-0"
+                >OK</button>
+                <button
+                  type="button"
+                  data-action="cancel-ai-swap"
+                  class="w-7 h-8 rounded-lg text-sage-muted hover:bg-sage-tint text-xs shrink-0"
+                >✕</button>
+              </div>
+            ` : '';
+
             if (match.status === 'have') {
-              const aliasNote = match.unifiedViaDifferentName
-                ? ` (${escapeHtml(match.matchedNames.join(' + '))})`
-                : (match.unitIncompatible ? ` (doma: ${escapeHtml(match.availableText)})` : '');
+              const aliasNote = match.matchedItems.length === 0
+                ? ' (koření)'
+                : match.unifiedViaDifferentName
+                  ? ` (${escapeHtml(match.matchedNames.join(' + '))})`
+                  : (match.unitIncompatible ? ` (doma: ${escapeHtml(match.availableText)})` : '');
               return `
-                <li class="flex items-start justify-between gap-2 py-1.5 border-b border-sage-border/50 last:border-b-0 text-xs">
-                  <span class="text-sage-ink">
-                    <strong class="font-semibold">${escapeHtml(formatAmount(ing.amount))} ${escapeHtml(ing.unit)}</strong>
-                    ${escapeHtml(ing.name)}
-                  </span>
-                  <span class="shrink-0 font-semibold text-sage-dark bg-sage-tint px-2 py-0.5 rounded-full">✓ Doma${aliasNote}</span>
+                <li class="py-1.5 border-b border-sage-border/50 last:border-b-0 text-xs">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-sage-ink min-w-0">
+                      <strong class="font-semibold">${escapeHtml(formatAmount(ing.amount))} ${escapeHtml(ing.unit)}</strong>
+                      ${escapeHtml(ing.name)}
+                    </span>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <span class="font-semibold text-sage-dark bg-sage-tint px-2 py-0.5 rounded-full">✓ Doma${aliasNote}</span>
+                      <button
+                        type="button"
+                        data-action="toggle-swap-ai-ing"
+                        data-idx="${idx}"
+                        data-ing-idx="${ingIdx}"
+                        title="Vyměnit surovinu"
+                        class="w-6 h-6 rounded-md bg-white hover:bg-sage-tint border border-sage-border text-sage-dark text-[11px] font-bold flex items-center justify-center"
+                      >⇄</button>
+                    </div>
+                  </div>
+                  ${swapBoxHtml}
                 </li>
               `;
             }
@@ -4979,12 +5786,25 @@
               : 'Dokoupit';
 
             return `
-              <li class="flex items-start justify-between gap-2 py-1.5 border-b border-sage-border/50 last:border-b-0 text-xs">
-                <span class="text-sage-ink">
-                  <strong class="font-semibold">${escapeHtml(formatAmount(ing.amount))} ${escapeHtml(ing.unit)}</strong>
-                  ${escapeHtml(ing.name)}
-                </span>
-                <span class="shrink-0 font-semibold text-ochre bg-ochre-bg border border-ochre-border px-2 py-0.5 rounded-full">${escapeHtml(missingLabel)}</span>
+              <li class="py-1.5 border-b border-sage-border/50 last:border-b-0 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-sage-ink min-w-0">
+                    <strong class="font-semibold">${escapeHtml(formatAmount(ing.amount))} ${escapeHtml(ing.unit)}</strong>
+                    ${escapeHtml(ing.name)}
+                  </span>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <span class="font-semibold text-ochre bg-ochre-bg border border-ochre-border px-2 py-0.5 rounded-full">${escapeHtml(missingLabel)}</span>
+                    <button
+                      type="button"
+                      data-action="toggle-swap-ai-ing"
+                      data-idx="${idx}"
+                      data-ing-idx="${ingIdx}"
+                      title="Vyměnit surovinu"
+                      class="w-6 h-6 rounded-md bg-white hover:bg-sage-tint border border-sage-border text-sage-dark text-[11px] font-bold flex items-center justify-center"
+                    >⇄</button>
+                  </div>
+                </div>
+                ${swapBoxHtml}
               </li>
             `;
           }).join('');
@@ -5000,21 +5820,23 @@
                 </div>
                 ${rec.whyNow ? `
                   <div class="mt-1.5 text-xs font-medium text-sage-dark bg-sage-tint/75 border border-sage-border rounded-xl px-3 py-1.5 leading-snug">
-                    🌿 <strong>Proč právě teď:</strong> ${escapeHtml(rec.whyNow)}
+                    🌿 ${escapeHtml(rec.whyNow)}
                   </div>
                 ` : ''}
                 ${rec.note ? `<p class="text-xs text-sage-muted mt-1.5 leading-relaxed">${escapeHtml(rec.note)}</p>` : ''}
                 <div class="flex flex-wrap items-center gap-1.5 mt-2">
                   ${statusBadge}
-                  <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sage-bg text-sage-ink border border-sage-border">
-                    ~${formatInt(perServing.kcal)} kcal • ${Math.round(perServing.protein)} g B / porce
-                  </span>
+                  ${nutrOn ? `
+                    <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sage-bg text-sage-ink border border-sage-border">
+                      ~${formatInt(perServing.kcal)} kcal • ${Math.round(perServing.protein)} g B / porce
+                    </span>
+                  ` : ''}
                 </div>
               </div>
 
               <details open class="bg-sage-bg rounded-xl border border-sage-border/80 px-3 py-2">
                 <summary class="text-xs font-semibold text-sage-dark cursor-pointer select-none">
-                  Suroviny (${rec.ingredients.length}) a postup přípravy
+                  Suroviny (${rec.ingredients.length}) a postup • klepni ⇄ pro výměnu
                 </summary>
 
                 <ul class="mt-2">${ingredientsHtml}</ul>
@@ -5049,26 +5871,39 @@
                   ${isSaved ? '✓ Uloženo' : 'Uložit do receptů'}
                 </button>
 
+                <button
+                  type="button"
+                  data-action="ai-cook-batch"
+                  data-idx="${idx}"
+                  class="min-h-[42px] px-3 py-2 rounded-xl bg-sage-tint hover:bg-sage text-sage-dark hover:text-white border border-sage-soft text-xs font-semibold transition"
+                >
+                  🍲 Uvařit do zásoby
+                </button>
+
                 ${missingCount > 0 ? `
                   <button
                     type="button"
                     data-action="ai-add-missing"
                     data-idx="${idx}"
-                    class="flex-1 min-h-[42px] px-3 py-2 rounded-xl bg-ochre-bg hover:bg-ochre text-ochre hover:text-white border border-ochre-border active:scale-[0.98] text-xs sm:text-sm font-semibold transition"
+                    class="w-full min-h-[40px] px-3 py-2 rounded-xl bg-ochre-bg hover:bg-ochre text-ochre hover:text-white border border-ochre-border active:scale-[0.98] text-xs font-semibold transition"
                   >
-                    + Chybějící do nákupu
+                    + Chybějící do nákupu (${missingCount})
                   </button>
                 ` : ''}
               </div>
             </article>
           `;
         }).join('');
+
+        bindActiveSwapInputAutocomplete();
       }
 
       async function runAiChefGeneration(isMoreIdeas = false) {
         if (aiChefState.isLoading) return;
-        if (aiChefState.mode === 'only_home' && state.pantry.length === 0) {
-          showToast('V režimu „Z toho, co mám doma“ si nejdřív přidej pár surovin do Doma, nebo přepni na „Co teď potřebuji“.');
+        const wishHasText = document.getElementById('aiWishInput').value.trim().length > 0;
+
+        if (!wishHasText && aiChefState.mode === 'only_home' && state.pantry.length === 0) {
+          showToast('V režimu „Z toho, co mám doma“ si nejdřív přidej pár surovin do Doma, nebo napiš nahoře, na co máš chuť.');
           return;
         }
 
@@ -5078,6 +5913,7 @@
         const errorDetail = document.getElementById('aiErrorDetail');
         const moreBtn = document.getElementById('aiMoreIdeasBtn');
 
+        activeSwapTarget = null;
         aiChefState.isLoading = true;
         genBtn.disabled = true;
         moreBtn.classList.add('hidden');
@@ -5177,6 +6013,7 @@
       // Události: AI Kuchař
       document.getElementById('openAiChefFromRecipesBtn').addEventListener('click', openAiChefModal);
       document.getElementById('openAiChefFromPantryBtn').addEventListener('click', openAiChefModal);
+      document.getElementById('aiWishInput').addEventListener('input', syncAiChefControlsUI);
 
       document.querySelectorAll('.ai-mode-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -5209,11 +6046,44 @@
       document.getElementById('aiResultsContainer').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
+        const act = btn.dataset.action;
+
+        if (act === 'cancel-ai-swap') {
+          activeSwapTarget = null;
+          closeAutocomplete();
+          renderAiResults();
+          return;
+        }
+
         const idx = Number(btn.dataset.idx);
         const rec = aiChefState.results[idx];
         if (!rec) return;
 
-        if (btn.dataset.action === 'ai-save-recipe') {
+        if (act === 'toggle-swap-ai-ing') {
+          const ingIdx = Number(btn.dataset.ingIdx);
+          const key = `ai:${idx}:${ingIdx}`;
+          activeSwapTarget = activeSwapTarget === key ? null : key;
+          closeAutocomplete();
+          renderAiResults();
+          return;
+        }
+
+        if (act === 'confirm-swap-ai-ing') {
+          const ingIdx = Number(btn.dataset.ingIdx);
+          const inp = document.getElementById('activeSwapInput');
+          const newName = capitalizeFirst((inp?.value || '').trim());
+          if (!newName || !rec.ingredients[ingIdx]) return;
+          const oldName = rec.ingredients[ingIdx].name;
+          rec.ingredients[ingIdx].name = newName;
+          delete rec.aiNutritionPerServing;
+          activeSwapTarget = null;
+          closeAutocomplete();
+          renderAiResults();
+          showToast(`Vyměněno: ${oldName} → ${newName}`);
+          return;
+        }
+
+        if (act === 'ai-save-recipe') {
           if (aiChefState.savedIndices.has(idx)) return;
           const savedRec = {
             id: uid('rec'),
@@ -5232,7 +6102,9 @@
           renderAiResults();
           if (activeTab === 'recipes') renderRecipes();
           showToast(`Recept „${rec.name}“ byl uložen do Receptů.`);
-        } else if (btn.dataset.action === 'ai-add-missing') {
+        } else if (act === 'ai-cook-batch') {
+          openCookBatchModalForAiRecipe(idx, rec);
+        } else if (act === 'ai-add-missing') {
           const evalRes = evaluateRecipe(rec);
           let added = 0;
           evalRes.details.forEach(({ ing, match }) => {
@@ -5252,6 +6124,14 @@
           } else {
             showToast('Všechny suroviny už máš doma.');
           }
+        }
+      });
+
+      document.getElementById('aiResultsContainer').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target?.id === 'activeSwapInput') {
+          e.preventDefault();
+          const btn = e.target.parentElement?.querySelector('[data-action="confirm-swap-ai-ing"]');
+          if (btn) btn.click();
         }
       });
 
