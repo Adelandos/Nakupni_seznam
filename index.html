@@ -3994,18 +3994,39 @@
 
     function getStoredGeminiKey() {
       try {
-        return (localStorage.getItem(AI_KEY_STORAGE) || '').trim();
+        return (localStorage.getItem(AI_KEY_STORAGE) || '').replace(/\s+/g, '').trim();
       } catch {
         return '';
       }
     }
 
+    function isInsidePreviewIframe() {
+      try {
+        return window.self !== window.top;
+      } catch {
+        return true;
+      }
+    }
+
+    function getEffectiveApiKey() {
+      const stored = getStoredGeminiKey();
+      if (stored) return { key: stored, source: 'stored' };
+      if (isInsidePreviewIframe()) return { key: '', source: 'preview' };
+      return { key: '', source: 'missing' };
+    }
+
     function updateAiKeyUI() {
       const key = getStoredGeminiKey();
       const hasKey = Boolean(key);
+      const inPreview = isInsidePreviewIframe();
 
       const headerDot = document.getElementById('aiKeyIndicatorDot');
-      if (headerDot) headerDot.classList.toggle('hidden', !hasKey);
+      if (headerDot) headerDot.classList.toggle('hidden', !hasKey && !inPreview);
+
+      const shortcutBtn = document.getElementById('aiChefOpenSettingsShortcut');
+      if (shortcutBtn) {
+        shortcutBtn.textContent = hasKey ? 'Klíč AI ✓' : (inPreview ? 'AI Náhled ✓' : 'Klíč AI');
+      }
 
       const statusDot = document.getElementById('aiKeyStatusDot');
       const statusText = document.getElementById('aiKeyStatusText');
@@ -4014,6 +4035,9 @@
           const masked = key.length > 10 ? `${key.slice(0, 6)}••••${key.slice(-4)}` : '••••••';
           statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sage shrink-0';
           statusText.textContent = `Uložený vlastní klíč: ${masked}`;
+        } else if (inPreview) {
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sage shrink-0';
+          statusText.textContent = 'V náhledu (Preview) běží AI automaticky; pro mobil na GitHubu si níže ulož vlastní klíč.';
         } else {
           statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sage-soft shrink-0';
           statusText.textContent = 'Zatím není uložen vlastní klíč.';
@@ -4031,8 +4055,61 @@
         .trim() || parts.map(p => p?.text || '').join('\n').trim();
     }
 
+    function parseJsonFromAiText(rawText) {
+      const cleaned = String(rawText || '')
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/```\s*$/i, '')
+        .trim();
+      try {
+        return JSON.parse(cleaned);
+      } catch {
+        const objMatch = cleaned.match(/\{[\s\S]*\}/);
+        const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+        const candidate = (arrMatch && (!objMatch || arrMatch.index <= objMatch.index))
+          ? arrMatch[0]
+          : objMatch?.[0];
+        if (candidate) return JSON.parse(candidate);
+        throw new Error('AI vrátila odpověď v neočekávaném formátu.');
+      }
+    }
+
+    async function sendGeminiRequest(modelPath, apiKey, promptText, jsonSchema = null) {
+      const cleanPath = modelPath.startsWith('models/') ? modelPath : `models/${modelPath}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/${cleanPath}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const payload = {
+        contents: [{ role: 'user', parts: [{ text: promptText }] }]
+      };
+      if (jsonSchema) {
+        payload.generationConfig = {
+          responseMimeType: 'application/json',
+          responseSchema: jsonSchema
+        };
+      }
+
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        const msg = data?.error?.message || `HTTP ${resp.status}`;
+        const err = new Error(msg);
+        err.status = resp.status;
+        throw err;
+      }
+
+      const text = extractTextFromGeminiPayload(data);
+      if (!text) {
+        throw new Error('Model vrátil prázdnou odpověď.');
+      }
+      return text;
+    }
+
     async function callGeminiWithFallback(apiKey, promptText, jsonSchema = null) {
       const candidateModels = [
+        'gemini-3-flash-preview',
         'gemini-2.5-flash',
         'gemini-2.5-flash-lite',
         'gemini-2.0-flash'
@@ -4042,70 +4119,47 @@
 
       for (const model of candidateModels) {
         try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-          const payload = {
-            contents: [{ role: 'user', parts: [{ text: promptText }] }]
-          };
-          if (jsonSchema) {
-            payload.generationConfig = {
-              responseMimeType: 'application/json',
-              responseSchema: jsonSchema
-            };
-          }
-
-          const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          const data = await resp.json().catch(() => ({}));
-          if (!resp.ok) {
-            const msg = data?.error?.message || `HTTP ${resp.status}`;
-            lastErr = new Error(msg);
-            if (resp.status === 400 && /api key not valid/i.test(msg)) {
-              throw lastErr;
-            }
-            continue;
-          }
-
-          const text = extractTextFromGeminiPayload(data);
-          if (text) return text;
+          return await sendGeminiRequest(model, apiKey, promptText, jsonSchema);
         } catch (err) {
           lastErr = err;
-          if (/api key not valid/i.test(String(err?.message || ''))) {
-            throw err;
+          const msg = String(err?.message || '');
+          if (/api key not valid|api_key_invalid/i.test(msg)) {
+            throw new Error('Neplatný API klíč – zkontroluj, že jsi ho zkopírovala celý bez mezer.');
+          }
+          // Pokud konkrétní model nepodporuje responseSchema, zkusíme ho hned bez schématu
+          if (jsonSchema && err?.status === 400 && /schema|responsemimetype|json/i.test(msg)) {
+            try {
+              return await sendGeminiRequest(model, apiKey, promptText, null);
+            } catch (err2) {
+              lastErr = err2;
+            }
           }
         }
       }
 
-      // Záložní automatické zjištění dostupného modelu přímo z účtu uživatele
+      // Záložní automatické zjištění dostupného textového Flash modelu přímo z účtu uživatele
       try {
         const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
         const listData = await listResp.json().catch(() => ({}));
-        const supported = (listData?.models || []).find(m =>
-          Array.isArray(m.supportedGenerationMethods) &&
-          m.supportedGenerationMethods.includes('generateContent') &&
-          /gemini/i.test(m.name || '')
-        );
-        if (supported?.name) {
-          const modelPath = supported.name.startsWith('models/') ? supported.name : `models/${supported.name}`;
-          const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${encodeURIComponent(apiKey)}`;
-          const payload = {
-            contents: [{ role: 'user', parts: [{ text: promptText }] }],
-            ...(jsonSchema ? { generationConfig: { responseMimeType: 'application/json', responseSchema: jsonSchema } } : {})
-          };
-          const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        const excluded = /(embedding|imagen|veo|tts|audio|image|aqa|bisect|robotics|computer-use)/i;
+        const textModels = (listData?.models || [])
+          .filter(m =>
+            Array.isArray(m.supportedGenerationMethods) &&
+            m.supportedGenerationMethods.includes('generateContent') &&
+            /gemini/i.test(m.name || '') &&
+            !excluded.test(m.name || '')
+          )
+          .sort((a, b) => {
+            const aFlash = /flash/i.test(a.name) ? 0 : 1;
+            const bFlash = /flash/i.test(b.name) ? 0 : 1;
+            return aFlash - bFlash;
           });
-          const data = await resp.json().catch(() => ({}));
-          if (resp.ok) {
-            const text = extractTextFromGeminiPayload(data);
-            if (text) return text;
-          } else {
-            lastErr = new Error(data?.error?.message || `HTTP ${resp.status}`);
+
+        for (const m of textModels.slice(0, 2)) {
+          try {
+            return await sendGeminiRequest(m.name, apiKey, promptText, null);
+          } catch (err) {
+            lastErr = err;
           }
         }
       } catch (err) {
@@ -4116,11 +4170,12 @@
     }
 
     async function testStoredGeminiKey() {
-      const inputVal = (document.getElementById('aiApiKeyInput').value || '').trim();
-      const apiKey = inputVal || getStoredGeminiKey();
+      const inputVal = (document.getElementById('aiApiKeyInput').value || '').replace(/\s+/g, '').trim();
+      const eff = getEffectiveApiKey();
+      const apiKey = inputVal || eff.key;
       const resBox = document.getElementById('aiKeyTestResult');
 
-      if (!apiKey) {
+      if (!inputVal && eff.source === 'missing') {
         resBox.className = 'text-xs rounded-xl px-3 py-2 border bg-ochre-bg border-ochre-border text-sage-ink';
         resBox.textContent = 'Nejdřív vlož svůj Gemini API klíč do políčka výše.';
         resBox.classList.remove('hidden');
@@ -4133,10 +4188,14 @@
 
       try {
         await callGeminiWithFallback(apiKey, 'Odpověz jedním slovem: OK');
-        localStorage.setItem(AI_KEY_STORAGE, apiKey);
+        if (inputVal) {
+          localStorage.setItem(AI_KEY_STORAGE, inputVal);
+        }
         updateAiKeyUI();
         resBox.className = 'text-xs rounded-xl px-3 py-2 border bg-sage-tint border-sage-soft text-sage-dark font-medium';
-        resBox.textContent = '✓ Klíč je uložený a plně funkční!';
+        resBox.textContent = inputVal
+          ? '✓ Klíč je uložený a plně funkční!'
+          : '✓ Spojení s AI v náhledu funguje!';
       } catch (err) {
         resBox.className = 'text-xs rounded-xl px-3 py-2 border bg-danger-bg border-danger-border text-danger';
         resBox.textContent = `Chyba ověření: ${err?.message || 'Neplatný klíč nebo problém se sítí.'}`;
@@ -4170,8 +4229,8 @@
         return;
       }
 
-      const apiKey = getStoredGeminiKey();
-      if (!apiKey) {
+      const eff = getEffectiveApiKey();
+      if (eff.source === 'missing') {
         showToast('Pro zápis větou vlož nejdřív svůj bezplatný AI klíč vpravo nahoře (✨).');
         openModal('aiSettingsModal');
         return;
@@ -4206,11 +4265,11 @@
         };
 
         const prompt = `Odhadni orientační výživové hodnoty jedné běžné české porce pro tento popis jídla: "${sentence}".
-Vrať čistý JSON s názvem jídla česky (title) a odhadovanými hodnotami pro tuto porci:
-kcal, protein (g), carbs (g), fat (g), fiber (g), iron (mg), magnesium (mg), calcium (mg), zinc (mg), potassium (mg), vitC (mg), vitD (µg), vitB12 (µg), folate (µg), omega3 (g).`;
+Vrať POUZE validní JSON objekt (bez markdownu) s klíči:
+{"title": "název česky", "kcal": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0, "iron": 0, "magnesium": 0, "calcium": 0, "zinc": 0, "potassium": 0, "vitC": 0, "vitD": 0, "vitB12": 0, "folate": 0, "omega3": 0}`;
 
-        const rawJson = await callGeminiWithFallback(apiKey, prompt, schema);
-        const parsed = JSON.parse(rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
+        const rawJson = await callGeminiWithFallback(eff.key, prompt, schema);
+        const parsed = parseJsonFromAiText(rawJson);
 
         const nutrients = emptyNutrients();
         ALL_NUTRIENT_KEYS.forEach(k => {
@@ -4427,13 +4486,13 @@ kcal, protein (g), carbs (g), fat (g), fiber (g), iron (mg), magnesium (mg), cal
     }
 
     async function generateAiChefRecipes(differentBatch = false) {
-      const apiKey = getStoredGeminiKey();
+      const eff = getEffectiveApiKey();
       const errBox = document.getElementById('aiErrorBox');
       const loadBox = document.getElementById('aiLoadingBox');
       const genBtn = document.getElementById('aiGenerateBtn');
       const moreBtn = document.getElementById('aiMoreIdeasBtn');
 
-      if (!apiKey) {
+      if (eff.source === 'missing') {
         errBox.classList.remove('hidden');
         document.getElementById('aiErrorTitle').textContent = 'Chybí Gemini API klíč';
         document.getElementById('aiErrorText').textContent = 'Pro používání AI Kuchaře si vlož svůj bezplatný klíč z Google AI Studio.';
@@ -4515,11 +4574,12 @@ ${avoidNames}
 Důležitá pravidla:
 - U slaných hlavních jídel vždy zahrň do surovin i vhodnou přílohu (pokud není součástí pokrmu) a běžné koření/bylinky pro skvělou chuť.
 - Používej čisté české názvy surovin v 1. pádě (např. "Kuřecí prsa", "Rýže", "Cibule", "Sladká paprika", "Sůl a pepř").
-- Pro jednotky (unit) používej výhradně tyto hodnoty: ks, g, kg, ml, l, lžíce, lžička, hrst, stroužek, plechovka, balení, hrnek, špetka.`;
+- Pro jednotky (unit) používej výhradně tyto hodnoty: ks, g, kg, ml, l, lžíce, lžička, hrst, stroužek, plechovka, balení, hrnek, špetka.
+- Vrať POUZE čisté JSON pole 3 objektů ve formátu: [{"variantLabel": "...", "name": "...", "prepTime": "25 min", "servings": ${aiServingsCount}, "note": "...", "ingredients": [{"name": "...", "amount": 200, "unit": "g"}], "steps": ["..."]}].`;
 
       try {
-        const rawJson = await callGeminiWithFallback(apiKey, prompt, schema);
-        const parsed = JSON.parse(rawJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
+        const rawJson = await callGeminiWithFallback(eff.key, prompt, schema);
+        const parsed = parseJsonFromAiText(rawJson);
 
         if (!Array.isArray(parsed) || parsed.length === 0) {
           throw new Error('AI nevrátila žádný platný recept.');
@@ -5241,7 +5301,7 @@ Důležitá pravidla:
 
       document.getElementById('aiSettingsForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        const val = (document.getElementById('aiApiKeyInput').value || '').trim();
+        const val = (document.getElementById('aiApiKeyInput').value || '').replace(/\s+/g, '').trim();
         if (!val) {
           showToast('Vlož prosím svůj Gemini API klíč.');
           return;
