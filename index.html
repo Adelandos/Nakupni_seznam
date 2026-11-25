@@ -41,7 +41,7 @@
               muted:  '#5c6f60'  /* Doplňkový text */
             },
             ochre: {
-              bg:      '#fdf6ea', /* Jemný podklad pro částečnou shodu */
+              bg:      '#fdf6ea', /* Jemný podklad pro částečnou shodu / doplnění */
               border:  '#eedbb9',
               DEFAULT: '#c98a3a'  /* Teplá okrová / jantarová */
             },
@@ -58,7 +58,6 @@
   </script>
 
   <style>
-    /* Jemná animace přechodu záložek a modálů */
     @keyframes fadeInTab {
       from { opacity: 0; transform: translateY(4px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -69,7 +68,6 @@
     .safe-pb {
       padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
     }
-    /* Potlačení modrého probliknutí při klepnutí na mobilu */
     * {
       -webkit-tap-highlight-color: transparent;
     }
@@ -80,14 +78,30 @@
   <!-- Hlavní kontejner aplikace optimalizovaný pro mobil i desktop -->
   <div class="w-full max-w-[540px] min-h-screen flex flex-col bg-sage-bg relative shadow-[0_0_40px_rgba(38,51,41,0.05)]">
 
-    <!-- Horní fixní hlavička s názvem aktivní záložky -->
-    <header class="sticky top-0 z-20 bg-sage-bg/95 backdrop-blur-md border-b border-sage-border px-5 pt-4 pb-3 flex items-center justify-between gap-3">
+    <!-- Horní fixní hlavička s názvem aktivní záložky a 3 ikonkami vpravo -->
+    <header class="sticky top-0 z-20 bg-sage-bg/95 backdrop-blur-md border-b border-sage-border px-4 sm:px-5 pt-4 pb-3 flex items-center justify-between gap-2">
       <div class="min-w-0">
         <h1 id="headerTitle" class="text-xl font-bold tracking-tight text-sage-ink truncate">Nákupní seznam</h1>
         <p id="headerSubtitle" class="text-xs text-sage-muted mt-0.5 truncate">Přehled položek ke koupi a v košíku</p>
       </div>
-      <!-- Tlačítka vpravo: Nastavení AI a návrat k ukázkovým datům -->
-      <div class="flex items-center gap-2 shrink-0">
+
+      <!-- Ikonky vpravo: Výživa (volitelný přehled), Nastavení AI a Obnovení ukázky -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          id="openNutritionBtn"
+          title="Výživa, bílkoviny a vitamíny"
+          aria-label="Výživa a živiny"
+          class="relative w-10 h-10 rounded-xl bg-white border border-sage-border text-sage hover:bg-sage-tint active:scale-95 transition flex items-center justify-center shadow-sm"
+        >
+          <!-- Nenápadný indikátor aktivního výživového sledování -->
+          <span id="nutritionHeaderDot" class="hidden absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-sage ring-2 ring-white"></span>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+          </svg>
+        </button>
+
         <button
           type="button"
           id="openAiSettingsBtn"
@@ -95,7 +109,6 @@
           aria-label="Nastavení AI"
           class="relative w-10 h-10 rounded-xl bg-white border border-sage-border text-sage hover:bg-sage-tint active:scale-95 transition flex items-center justify-center shadow-sm"
         >
-          <!-- Zelený indikátor při uloženém vlastním API klíči -->
           <span id="aiKeyIndicatorDot" class="hidden absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-sage ring-2 ring-white"></span>
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3l1.8 4.6L18.5 9.4l-4.7 1.8L12 15.8l-1.8-4.6-4.7-1.8 4.7-1.8L12 3z"></path>
@@ -133,6 +146,30 @@
           </div>
           <div class="w-full h-2.5 bg-sage-tint rounded-full overflow-hidden">
             <div id="shoppingProgressBar" class="h-full bg-sage rounded-full transition-all duration-300" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Volitelná karta: Chytré tipy podle chybějících živin (zobrazí se jen při aktivní výživě) -->
+        <div id="shoppingNutrientTipsCard" class="hidden bg-white rounded-2xl border border-sage-border shadow-sm mb-3.5 overflow-hidden">
+          <button
+            type="button"
+            id="toggleShoppingNutrientTipsBtn"
+            class="w-full px-4 py-3 flex items-center justify-between gap-2 text-left hover:bg-sage-bg transition"
+          >
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 text-xs font-bold text-sage-dark">
+                <span>🌿 Tipy podle tvých živin</span>
+              </div>
+              <p id="shoppingNutrientTipsSummary" class="text-[11px] text-sage-muted truncate mt-0.5">
+                Potraviny, které ti teď nejvíc pomohou doplnit cíle
+              </p>
+            </div>
+            <svg id="shoppingNutrientTipsArrow" class="w-4 h-4 text-sage-muted shrink-0 transition-transform duration-200 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div id="shoppingNutrientTipsBody" class="px-3.5 pb-3.5 pt-1 border-t border-sage-border/70">
+            <div id="shoppingNutrientTipsChips" class="flex flex-wrap gap-1.5"></div>
           </div>
         </div>
 
@@ -274,7 +311,7 @@
               <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Gemini</span>
             </div>
             <p class="text-xs text-white/85 mt-1 leading-snug">
-              Vymyslí 3 recepty přímo z toho, co máš doma, nebo s dokoupením jen 1–2 věcí.
+              Vymyslí jídla přímo z toho, co máš doma, nebo přesně podle tvých cílů a chybějících živin.
             </p>
           </div>
           <span class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
@@ -437,7 +474,7 @@
     </main>
 
     <!-- ========================================================================
-         SPODNÍ NAVIGAČNÍ LIŠTA (4 ZÁLOŽKY)
+         SPODNÍ NAVIGAČNÍ LIŠTA (4 ČISTÉ ZÁLOŽKY)
          ======================================================================== -->
     <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[540px] z-30 bg-white/95 backdrop-blur-md border-t border-sage-border px-2 pt-1.5 safe-pb">
       <div class="grid grid-cols-4 gap-1">
@@ -479,10 +516,10 @@
   </div>
 
   <!-- Sdílený dotykový našeptávač surovin -->
-  <div id="autocompleteDropdown" class="hidden fixed z-[80] bg-white rounded-2xl shadow-xl border border-sage-border overflow-hidden max-h-56 overflow-y-auto"></div>
+  <div id="autocompleteDropdown" class="hidden fixed z-[95] bg-white rounded-2xl shadow-xl border border-sage-border overflow-hidden max-h-56 overflow-y-auto"></div>
 
-  <!-- Jemná toast notifikace (náhrada za alert()) -->
-  <div id="toastEl" class="pointer-events-none fixed bottom-24 left-1/2 -translate-x-1/2 z-[90] opacity-0 translate-y-2 transition-all duration-200 max-w-[90vw]">
+  <!-- Jemná toast notifikace -->
+  <div id="toastEl" class="pointer-events-none fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] opacity-0 translate-y-2 transition-all duration-200 max-w-[90vw]">
     <div id="toastText" class="bg-sage-ink text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-2xl shadow-lg text-center"></div>
   </div>
 
@@ -630,7 +667,6 @@
         Všechny varianty ve stejné skupině bere aplikace jako stejnou surovinu — v receptech, plánu i při nákupu.
       </p>
 
-      <!-- Přidání vlastní skupiny sjednocení -->
       <form id="unificationForm" class="bg-sage-bg border border-sage-border rounded-2xl p-3 mb-3 space-y-2">
         <input
           type="text"
@@ -656,15 +692,14 @@
         </div>
       </form>
 
-      <!-- Seznam aktivních skupin -->
       <div id="unificationGroupsList" class="overflow-y-auto space-y-2 flex-1 pr-0.5"></div>
     </div>
   </div>
 
   <!-- ==========================================================================
-       MODÁL 4: VLASTNÍ POTVRZOVACÍ DIALOG (náhrada za nativní confirm())
+       MODÁL 4: VLASTNÍ POTVRZOVACÍ DIALOG
        ========================================================================== -->
-  <div id="confirmModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[70] flex items-end sm:items-center justify-center p-3">
+  <div id="confirmModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[85] flex items-end sm:items-center justify-center p-3">
     <div class="w-full max-w-[400px] bg-white rounded-3xl p-5 shadow-2xl border border-sage-border">
       <h2 id="confirmTitle" class="text-lg font-bold text-sage-ink mb-1">Potvrzení</h2>
       <p id="confirmMessage" class="text-sm text-sage-muted mb-5 leading-relaxed">Opravdu chceš pokračovat?</p>
@@ -682,7 +717,7 @@
   <!-- ==========================================================================
        MODÁL 5: NASTAVENÍ AI (Bezpečné lokální uložení Gemini API klíče + test)
        ========================================================================== -->
-  <div id="aiSettingsModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[60] flex items-end sm:items-center justify-center p-3">
+  <div id="aiSettingsModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[75] flex items-end sm:items-center justify-center p-3">
     <div class="w-full max-w-[460px] bg-white rounded-3xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto border border-sage-border">
       <div class="flex items-center justify-between mb-1">
         <h2 class="text-lg font-bold text-sage-ink flex items-center gap-1.5">
@@ -694,13 +729,11 @@
         Vlož svůj bezplatný Gemini API klíč. Klíč se ukládá <strong>výhradně do paměti tohoto prohlížeče/mobilu</strong> — nikdy neopustí tvé zařízení a nenahrává se na GitHub.
       </p>
 
-      <!-- Stav uloženého klíče -->
       <div id="aiKeyStatusBox" class="mb-3.5 px-3.5 py-2.5 rounded-2xl bg-sage-bg border border-sage-border text-xs font-medium text-sage-muted flex items-center gap-2">
         <span id="aiKeyStatusDot" class="w-2.5 h-2.5 rounded-full bg-sage-soft shrink-0"></span>
         <span id="aiKeyStatusText">Zatím není uložen vlastní klíč.</span>
       </div>
 
-      <!-- Formulář zadání API klíče s očkem + testováním -->
       <form id="aiSettingsForm" class="space-y-3 mb-4">
         <div>
           <label for="aiApiKeyInput" class="block text-xs font-semibold text-sage-ink mb-1">Gemini API klíč</label>
@@ -719,7 +752,7 @@
               aria-label="Zobrazit nebo skrýt klíč"
               class="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg text-sage-muted hover:text-sage-ink hover:bg-sage-tint flex items-center justify-center transition"
             >
-              <svg id="aiKeyEyeIcon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
@@ -750,11 +783,9 @@
           </button>
         </div>
 
-        <!-- Výsledek rychlého testu klíče -->
         <div id="aiKeyTestResult" class="hidden text-xs rounded-xl px-3 py-2 border leading-relaxed"></div>
       </form>
 
-      <!-- Krátký 3-krokový návod na získání bezplatného klíče -->
       <div class="bg-sage-tint/70 border border-sage-border rounded-2xl p-3.5">
         <div class="text-xs font-bold text-sage-dark mb-2">Jak získat klíč zdarma za 1 minutu:</div>
         <ol class="space-y-1.5 text-xs text-sage-ink list-decimal list-inside leading-relaxed">
@@ -771,9 +802,9 @@
   </div>
 
   <!-- ==========================================================================
-       MODÁL 6: AI KUCHAŘ (2 režimy generování + ověření sjednocovacím motorem)
+       MODÁL 6: AI KUCHAŘ („Z toho, co mám doma“ + „Co teď potřebuji“ dle živin)
        ========================================================================== -->
-  <div id="aiChefModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center p-2.5 sm:p-3">
+  <div id="aiChefModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[65] flex items-end sm:items-center justify-center p-2.5 sm:p-3">
     <div class="w-full max-w-[500px] bg-sage-bg rounded-3xl shadow-2xl max-h-[92vh] flex flex-col border border-sage-border overflow-hidden">
 
       <!-- Hlavička AI Kuchaře -->
@@ -815,16 +846,18 @@
                 data-ai-mode="only_home"
                 class="ai-mode-btn py-2.5 px-2.5 rounded-lg text-xs font-semibold transition bg-white text-sage-ink shadow-sm leading-tight"
               >
-                Jen z toho, co mám doma
+                Z toho, co mám doma
               </button>
               <button
                 type="button"
-                data-ai-mode="buy_1_2"
+                data-ai-mode="what_i_need"
                 class="ai-mode-btn py-2.5 px-2.5 rounded-lg text-xs font-medium transition text-sage-muted leading-tight"
               >
-                Dokoupit jen 1–2 věci
+                Co teď potřebuji
               </button>
             </div>
+            <!-- Kontextový proužek ukazující, co AI v daném režimu zohlední -->
+            <p id="aiChefNutritionContextNote" class="text-[11px] text-sage-muted mt-2 bg-sage-bg rounded-xl px-3 py-2 border border-sage-border/70 leading-relaxed"></p>
           </div>
 
           <!-- Rychlé štítky preference -->
@@ -833,8 +866,8 @@
             <div id="aiPreferenceChips" class="flex flex-wrap gap-1.5">
               <button type="button" data-ai-pref="Cokoliv" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-semibold transition bg-sage text-white shadow-sm">Cokoliv</button>
               <button type="button" data-ai-pref="Rychlovka do 25 min" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-medium transition bg-sage-bg text-sage-ink border border-sage-border">Rychlovka do 25 min</button>
-              <button type="button" data-ai-pref="Oběd / Večeře" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-medium transition bg-sage-bg text-sage-ink border border-sage-border">Oběd / Večeře</button>
-              <button type="button" data-ai-pref="Snídaně" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-medium transition bg-sage-bg text-sage-ink border border-sage-border">Snídaně</button>
+              <button type="button" data-ai-pref="Vydatné hlavní jídlo" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-medium transition bg-sage-bg text-sage-ink border border-sage-border">Vydatné jídlo</button>
+              <button type="button" data-ai-pref="Snídaně / Svačina" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-medium transition bg-sage-bg text-sage-ink border border-sage-border">Snídaně / Svačina</button>
               <button type="button" data-ai-pref="Vegetariánské" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-medium transition bg-sage-bg text-sage-ink border border-sage-border">Vegetariánské</button>
               <button type="button" data-ai-pref="Sladké" class="ai-pref-chip px-3 py-1.5 rounded-full text-xs font-medium transition bg-sage-bg text-sage-ink border border-sage-border">Sladké</button>
             </div>
@@ -854,7 +887,7 @@
             <input
               type="text"
               id="aiWishInput"
-              placeholder="Přání (např. zužitkuj špenát, něco teplého...)"
+              placeholder="Přání (např. hodně bílkovin po tréninku, teplé...)"
               class="flex-1 h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
             >
           </div>
@@ -873,12 +906,12 @@
         <div id="aiLoadingBox" class="hidden bg-white rounded-2xl p-6 border border-sage-border shadow-sm text-center space-y-3">
           <div class="w-10 h-10 mx-auto rounded-full border-[3px] border-sage-tint border-t-sage animate-spin"></div>
           <div>
-            <div class="text-sm font-semibold text-sage-ink">AI Kuchař probírá tvoje zásoby…</div>
-            <p class="text-xs text-sage-muted mt-1">Vymýšlím 3 chutné recepty a rovnou je ověřím proti lednici a spíži.</p>
+            <div class="text-sm font-semibold text-sage-ink">AI Kuchař skládá recepty na míru…</div>
+            <p class="text-xs text-sage-muted mt-1">Zohledňuji tvůj profil, cíle živin i to, co už máš doma.</p>
           </div>
         </div>
 
-        <!-- Chybový box s přesným detailem pro snadné odhalení problému -->
+        <!-- Chybový box -->
         <div id="aiErrorBox" class="hidden bg-ochre-bg border border-ochre-border rounded-2xl p-4 space-y-3">
           <div class="text-sm font-semibold text-sage-ink" id="aiErrorTitle">Nepodařilo se spojit s AI</div>
           <p class="text-xs text-sage-muted leading-relaxed" id="aiErrorText"></p>
@@ -916,9 +949,407 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+       MODÁL 7: VÝŽIVOVÝ PŘEHLED (Dnešní energie & bílkoviny + 7denní radar + Deník)
+       ========================================================================== -->
+  <div id="nutritionModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-50 flex items-end sm:items-center justify-center p-2 sm:p-3">
+    <div class="w-full max-w-[510px] bg-sage-bg rounded-3xl shadow-2xl max-h-[93vh] flex flex-col border border-sage-border overflow-hidden">
+
+      <!-- Hlavička výživového přehledu -->
+      <div class="bg-white px-4 sm:px-5 pt-4 pb-3 border-b border-sage-border flex items-center justify-between gap-2 shrink-0">
+        <div class="min-w-0">
+          <h2 class="text-lg font-bold text-sage-ink flex items-center gap-1.5">
+            <span>🌿 Výživa a živiny</span>
+          </h2>
+          <p id="nutritionGoalModeSubtitle" class="text-xs text-sage-muted truncate mt-0.5">
+            Režim: Zdravé nabírání
+          </p>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            id="openNutritionProfileBtn"
+            class="h-9 px-3 rounded-xl bg-sage-tint hover:bg-sage text-sage-dark hover:text-white text-xs font-semibold transition flex items-center gap-1"
+          >
+            <span>Cíle & Profil</span>
+          </button>
+          <button type="button" data-close-modal="nutritionModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-tint transition">✕</button>
+        </div>
+      </div>
+
+      <!-- Rolovatelný obsah Výživy -->
+      <div class="p-4 overflow-y-auto flex-1 space-y-3.5">
+
+        <!-- Přepínač dne (Včera / Dnes / datum) -->
+        <div class="bg-white rounded-2xl p-2.5 border border-sage-border shadow-sm flex items-center justify-between gap-2">
+          <button type="button" id="nutrPrevDayBtn" class="px-3 py-1.5 rounded-xl bg-sage-bg hover:bg-sage-tint text-xs font-semibold text-sage-ink transition">← Předchozí</button>
+          <div class="text-center">
+            <div id="nutrSelectedDateLabel" class="text-xs sm:text-sm font-bold text-sage-ink">Dnes</div>
+            <div id="nutrSelectedDateSub" class="text-[11px] text-sage-muted"></div>
+          </div>
+          <button type="button" id="nutrNextDayBtn" class="px-3 py-1.5 rounded-xl bg-sage-bg hover:bg-sage-tint text-xs font-semibold text-sage-ink transition disabled:opacity-40">Další →</button>
+        </div>
+
+        <!-- 1. DNEŠNÍ HLAVNÍ UKAZATELE: ENERGIE A BÍLKOVINY + MAKRA -->
+        <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-3.5">
+          <!-- Energie (kcal) -->
+          <div>
+            <div class="flex items-baseline justify-between gap-2 mb-1">
+              <span class="text-xs font-bold uppercase tracking-wider text-sage-muted">Energie</span>
+              <span id="nutrKcalNumbers" class="text-sm font-bold text-sage-ink">0 / 2 500 kcal</span>
+            </div>
+            <div class="w-full h-3 bg-sage-tint rounded-full overflow-hidden">
+              <div id="nutrKcalBar" class="h-full bg-sage rounded-full transition-all duration-300" style="width: 0%;"></div>
+            </div>
+            <p id="nutrKcalHint" class="text-xs text-sage-muted mt-1"></p>
+          </div>
+
+          <!-- Bílkoviny (g) -->
+          <div>
+            <div class="flex items-baseline justify-between gap-2 mb-1">
+              <span class="text-xs font-bold uppercase tracking-wider text-sage-muted">Bílkoviny (ke cvičení)</span>
+              <span id="nutrProteinNumbers" class="text-sm font-bold text-sage-dark">0 / 120 g</span>
+            </div>
+            <div class="w-full h-3 bg-sage-tint rounded-full overflow-hidden">
+              <div id="nutrProteinBar" class="h-full bg-sage-dark rounded-full transition-all duration-300" style="width: 0%;"></div>
+            </div>
+            <p id="nutrProteinHint" class="text-xs text-sage-muted mt-1"></p>
+          </div>
+
+          <!-- Klidný orientační řádek: Sacharidy, Tuky, Vláknina -->
+          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-sage-border/70">
+            <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
+              <div class="text-[11px] text-sage-muted">Sacharidy</div>
+              <div id="nutrCarbsText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 310 g</div>
+            </div>
+            <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
+              <div class="text-[11px] text-sage-muted">Tuky</div>
+              <div id="nutrFatText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 80 g</div>
+            </div>
+            <div class="bg-sage-bg rounded-xl p-2.5 text-center border border-sage-border/60">
+              <div class="text-[11px] text-sage-muted">Vláknina</div>
+              <div id="nutrFiberText" class="text-xs sm:text-sm font-bold text-sage-ink mt-0.5">0 / 30 g</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. RYCHLÝ ZÁPIS JÍDLA (3 ZPŮSOBY) -->
+        <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-sage-ink">Zapsat snědené jídlo</h3>
+            <span class="text-[11px] text-sage-muted">3 rychlé způsoby</span>
+          </div>
+
+          <!-- Přepínač 3 způsobů zápisu -->
+          <div class="grid grid-cols-3 gap-1 bg-sage-tint p-1 rounded-xl border border-sage-border">
+            <button type="button" data-log-mode="recipe" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-semibold transition bg-white text-sage-ink shadow-sm">
+              Z receptů
+            </button>
+            <button type="button" data-log-mode="ai" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-medium transition text-sage-muted">
+              ✨ Větou (AI)
+            </button>
+            <button type="button" data-log-mode="ingredient" class="nutr-log-tab py-2 px-2 rounded-lg text-xs font-medium transition text-sage-muted">
+              1 surovina
+            </button>
+          </div>
+
+          <!-- Způsob A: 1 klik z Receptů / Plánu -->
+          <div id="logPanel-recipe" class="space-y-2">
+            <div class="flex gap-2">
+              <select id="nutrRecipeSelect" class="flex-1 min-w-0 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage"></select>
+              <select id="nutrRecipePortionSelect" aria-label="Počet porcí" class="w-24 h-11 px-2.5 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage">
+                <option value="0.5">0,5 porce</option>
+                <option value="1" selected>1 porce</option>
+                <option value="1.5">1,5 porce</option>
+                <option value="2">2 porce</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              id="logFromRecipeBtn"
+              class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition"
+            >
+              ✓ Zapsat recept do dneška
+            </button>
+          </div>
+
+          <!-- Způsob B: Normální větou přes AI (s lokální cache) -->
+          <div id="logPanel-ai" class="hidden space-y-2">
+            <input
+              type="text"
+              id="nutrAiSentenceInput"
+              placeholder="Např. ovesná kaše s banánem, arašídovým máslem a tvarohem"
+              class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-xs sm:text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
+            >
+            <button
+              type="button"
+              id="logFromAiSentenceBtn"
+              class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              <span>✨ Odhadnout živiny a zapsat</span>
+            </button>
+            <p class="text-[11px] text-sage-muted leading-snug">
+              Jednou odhadnutá jídla si apka zapamatuje v paměti — příště se zapíšou okamžitě i bez internetu.
+            </p>
+          </div>
+
+          <!-- Způsob C: Jedna surovina z katalogu / z Doma (100% offline) -->
+          <form id="logSingleIngredientForm" class="hidden space-y-2">
+            <input
+              type="text"
+              id="nutrIngNameInput"
+              placeholder="Surovina (např. Řecký jogurt, Banán, Vejce...)"
+              autocomplete="off"
+              class="w-full h-11 px-3.5 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink placeholder:text-sage-muted/70 focus:outline-none focus:bg-white focus:border-sage transition"
+            >
+            <div class="flex gap-2">
+              <input
+                type="number"
+                id="nutrIngAmountInput"
+                step="any"
+                min="0.1"
+                value="150"
+                aria-label="Množství"
+                class="w-24 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+              >
+              <select
+                id="nutrIngUnitSelect"
+                aria-label="Jednotka"
+                class="flex-1 h-11 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:outline-none focus:bg-white focus:border-sage transition"
+              ></select>
+              <button
+                type="submit"
+                class="h-11 px-5 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition shrink-0"
+              >
+                + Zapsat
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 3. 7DENNÍ RADAR 10 VITAMÍNŮ A MINERÁLŮ -->
+        <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-3">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-sage-ink">7denní radar vitamínů a minerálů</h3>
+              <p id="nutrRadarSubtitle" class="text-[11px] text-sage-muted mt-0.5">
+                Klepni na kteroukoli živinu pro tipy, z čeho ji snadno doplnit.
+              </p>
+            </div>
+          </div>
+
+          <div id="nutrMicroGrid" class="grid grid-cols-2 gap-2"></div>
+
+          <!-- Detail vybrané mikroživiny po klepnutí -->
+          <div id="nutrMicroDetailBox" class="hidden bg-sage-bg rounded-2xl p-3 border border-sage-border space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div id="nutrMicroDetailTitle" class="text-xs font-bold text-sage-ink"></div>
+              <button type="button" id="closeNutrMicroDetailBtn" class="text-xs text-sage-muted hover:text-sage-ink">✕</button>
+            </div>
+            <p id="nutrMicroDetailSources" class="text-xs text-sage-muted leading-relaxed"></p>
+            <div id="nutrMicroDetailChips" class="flex flex-wrap gap-1.5"></div>
+          </div>
+        </div>
+
+        <!-- 4. DENÍK ZAPSANYCH JÍDEL PRO VYBRANÝ DEN -->
+        <div class="bg-white rounded-2xl p-4 border border-sage-border shadow-sm space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-sage-ink">Zapsaná jídla dne</h3>
+            <span id="nutrDayEntriesCount" class="text-xs font-semibold text-sage-muted">0 položek</span>
+          </div>
+          <div id="nutrDayEntriesList" class="space-y-2"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODÁL 8: OSOBNÍ PROFIL, CÍLE VÝŽIVY A ZÁLOHA DAT (PRO KOHOHOKOLI)
+       ========================================================================== -->
+  <div id="nutritionProfileModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[70] flex items-end sm:items-center justify-center p-2.5 sm:p-3">
+    <div class="w-full max-w-[490px] bg-white rounded-3xl p-5 shadow-2xl max-h-[92vh] overflow-y-auto border border-sage-border">
+      <div class="flex items-center justify-between mb-1">
+        <h2 class="text-lg font-bold text-sage-ink">Osobní profil a cíle výživy</h2>
+        <button type="button" data-close-modal="nutritionProfileModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-tint transition">✕</button>
+      </div>
+      <p class="text-xs text-sage-muted mb-3.5 leading-relaxed">
+        Nastav si vlastní cíle nebo si je nech orientačně spočítat. Všechna čísla můžeš kdykoli ručně přepsat.
+      </p>
+
+      <form id="nutritionProfileForm" class="space-y-4">
+        <!-- 1. Směr / cíl stravování -->
+        <div>
+          <label class="block text-xs font-bold text-sage-ink mb-1.5">1. Tvůj hlavní cíl</label>
+          <div class="grid grid-cols-3 gap-1.5 bg-sage-tint p-1 rounded-xl border border-sage-border">
+            <button type="button" data-goal-mode="gain" class="prof-goal-btn py-2 px-2 rounded-lg text-xs font-semibold transition bg-white text-sage-ink shadow-sm leading-tight">
+              Zdravé nabírání
+            </button>
+            <button type="button" data-goal-mode="maintain" class="prof-goal-btn py-2 px-2 rounded-lg text-xs font-medium transition text-sage-muted leading-tight">
+              Vyváženost
+            </button>
+            <button type="button" data-goal-mode="lose" class="prof-goal-btn py-2 px-2 rounded-lg text-xs font-medium transition text-sage-muted leading-tight">
+              Lehká redukce
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Volitelný orientační výpočet podle postavy a pohybu -->
+        <div class="bg-sage-bg rounded-2xl p-3.5 border border-sage-border space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-sage-dark">2. Volitelný výpočet doporučených hodnot</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label for="profSexSelect" class="block text-[11px] text-sage-muted mb-0.5">Pohlaví</label>
+              <select id="profSexSelect" class="w-full h-9 px-2 rounded-xl bg-white border border-sage-border text-xs text-sage-ink">
+                <option value="female">Žena</option>
+                <option value="male">Muž</option>
+              </select>
+            </div>
+            <div>
+              <label for="profAgeInput" class="block text-[11px] text-sage-muted mb-0.5">Věk (roky)</label>
+              <input type="number" id="profAgeInput" min="15" max="99" placeholder="25" class="w-full h-9 px-2.5 rounded-xl bg-white border border-sage-border text-xs text-sage-ink">
+            </div>
+            <div>
+              <label for="profWeightInput" class="block text-[11px] text-sage-muted mb-0.5">Váha (kg)</label>
+              <input type="number" id="profWeightInput" min="35" max="220" step="0.5" placeholder="60" class="w-full h-9 px-2.5 rounded-xl bg-white border border-sage-border text-xs text-sage-ink">
+            </div>
+            <div>
+              <label for="profHeightInput" class="block text-[11px] text-sage-muted mb-0.5">Výška (cm)</label>
+              <input type="number" id="profHeightInput" min="130" max="225" placeholder="168" class="w-full h-9 px-2.5 rounded-xl bg-white border border-sage-border text-xs text-sage-ink">
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-2">
+            <select id="profActivitySelect" aria-label="Pohybová aktivita" class="flex-1 h-9 px-2.5 rounded-xl bg-white border border-sage-border text-xs text-sage-ink">
+              <option value="1.3">Málo pohybu (sedavý režim)</option>
+              <option value="1.45">Lehký pohyb (1–2× týdně)</option>
+              <option value="1.6" selected>Pravidelné cvičení (3–4× týdně)</option>
+              <option value="1.75">Vysoká aktivita (5+× týdně)</option>
+            </select>
+            <button
+              type="button"
+              id="calculateRecommendedTargetsBtn"
+              class="h-9 px-3.5 rounded-xl bg-sage-tint hover:bg-sage text-sage-dark hover:text-white border border-sage-soft text-xs font-semibold transition shrink-0"
+            >
+              Vypočítat doporučení
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Denní cíle energie a maker (libovolně upravitelné) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-sage-ink">3. Denní cíle energie a makroživin</span>
+            <button type="button" id="preset2500GainBtn" class="text-[11px] font-semibold text-sage-dark hover:underline">
+              Předvolba 2 500 kcal
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div>
+              <label for="targetKcalInput" class="block text-[11px] text-sage-muted mb-0.5">Energie (kcal)</label>
+              <input type="number" id="targetKcalInput" min="1000" max="6000" step="10" required class="w-full h-10 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm font-semibold text-sage-ink focus:bg-white focus:border-sage">
+            </div>
+            <div>
+              <label for="targetProteinInput" class="block text-[11px] text-sage-muted mb-0.5">Bílkoviny (g)</label>
+              <input type="number" id="targetProteinInput" min="30" max="400" step="1" required class="w-full h-10 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm font-semibold text-sage-ink focus:bg-white focus:border-sage">
+            </div>
+            <div>
+              <label for="targetCarbsInput" class="block text-[11px] text-sage-muted mb-0.5">Sacharidy (g)</label>
+              <input type="number" id="targetCarbsInput" min="30" max="800" step="1" required class="w-full h-10 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:bg-white focus:border-sage">
+            </div>
+            <div>
+              <label for="targetFatInput" class="block text-[11px] text-sage-muted mb-0.5">Tuky (g)</label>
+              <input type="number" id="targetFatInput" min="20" max="250" step="1" required class="w-full h-10 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:bg-white focus:border-sage">
+            </div>
+            <div>
+              <label for="targetFiberInput" class="block text-[11px] text-sage-muted mb-0.5">Vláknina (g)</label>
+              <input type="number" id="targetFiberInput" min="10" max="80" step="1" required class="w-full h-10 px-3 rounded-xl bg-sage-bg border border-sage-border text-sm text-sage-ink focus:bg-white focus:border-sage">
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Volitelné ruční upravení cílů vitamínů a minerálů -->
+        <details class="bg-sage-bg rounded-2xl border border-sage-border px-3.5 py-2.5">
+          <summary class="text-xs font-bold text-sage-dark cursor-pointer select-none">
+            4. Cíle vitamínů a minerálů (volitelné úpravy)
+          </summary>
+          <div id="microTargetsInputsGrid" class="grid grid-cols-2 gap-2 mt-3"></div>
+        </details>
+
+        <button
+          type="submit"
+          class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition"
+        >
+          Uložit profil a cíle
+        </button>
+      </form>
+
+      <!-- Záloha dat (Export / Import) -->
+      <div class="mt-4 pt-4 border-t border-sage-border space-y-2">
+        <div class="text-xs font-bold text-sage-ink">Záloha dat v mobilu (Export / Import)</div>
+        <p class="text-[11px] text-sage-muted leading-relaxed">
+          Ulož si všechny svoje recepty, zásoby, plán i historii výživy do souboru (API klíč se z bezpečnostních důvodů neexportuje).
+        </p>
+        <div class="flex gap-2">
+          <button type="button" id="exportBackupBtn" class="flex-1 h-10 rounded-xl bg-sage-bg hover:bg-sage-tint border border-sage-border text-xs font-semibold text-sage-dark transition">
+            ↓ Stáhnout zálohu
+          </button>
+          <label class="flex-1 h-10 rounded-xl bg-sage-bg hover:bg-sage-tint border border-sage-border text-xs font-semibold text-sage-dark transition flex items-center justify-center cursor-pointer">
+            <span>↑ Obnovit ze souboru</span>
+            <input type="file" id="importBackupInput" accept=".json,application/json" class="hidden">
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODÁL 9: RYCHLÉ POTVRZENÍ PORCE PŘI „✓ SNĚDENO“ Z PLÁNU NEBO RECEPTŮ
+       ========================================================================== -->
+  <div id="quickEatModal" class="modal-backdrop hidden fixed inset-0 bg-sage-ink/40 backdrop-blur-[2px] z-[80] flex items-end sm:items-center justify-center p-3">
+    <div class="w-full max-w-[400px] bg-white rounded-3xl p-5 shadow-2xl border border-sage-border space-y-3.5">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <h2 class="text-base font-bold text-sage-ink">Zapsat snědené jídlo</h2>
+          <p id="quickEatRecipeTitle" class="text-xs text-sage-muted mt-0.5"></p>
+        </div>
+        <button type="button" data-close-modal="quickEatModal" aria-label="Zavřít" class="w-8 h-8 rounded-full bg-sage-bg text-sage-muted flex items-center justify-center hover:bg-sage-tint transition">✕</button>
+      </div>
+
+      <div id="quickEatNutritionPreview" class="bg-sage-tint/70 border border-sage-border rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-sage-dark text-center"></div>
+
+      <div>
+        <div class="text-xs font-semibold text-sage-ink mb-1.5">Kolik porcí jsi snědla?</div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <button type="button" data-eat-portion="0.5" class="quick-eat-portion-btn h-10 rounded-xl bg-sage-bg border border-sage-border text-xs font-semibold text-sage-ink">0,5×</button>
+          <button type="button" data-eat-portion="1" class="quick-eat-portion-btn h-10 rounded-xl bg-sage text-white text-xs font-semibold shadow-sm">1×</button>
+          <button type="button" data-eat-portion="1.5" class="quick-eat-portion-btn h-10 rounded-xl bg-sage-bg border border-sage-border text-xs font-semibold text-sage-ink">1,5×</button>
+          <button type="button" data-eat-portion="2" class="quick-eat-portion-btn h-10 rounded-xl bg-sage-bg border border-sage-border text-xs font-semibold text-sage-ink">2×</button>
+        </div>
+      </div>
+
+      <label class="flex items-center gap-2.5 text-xs text-sage-muted cursor-pointer select-none">
+        <input type="checkbox" id="quickEatDeductPantryCheckbox" class="w-4 h-4 accent-[#68826e] rounded">
+        <span>Zároveň odečíst použité suroviny ze zásob Doma</span>
+      </label>
+
+      <button
+        type="button"
+        id="confirmQuickEatBtn"
+        class="w-full h-11 rounded-xl bg-sage hover:bg-sage-dark active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition"
+      >
+        ✓ Zapsat do dnešního dne
+      </button>
+    </div>
+  </div>
+
   <script>
     /* ==========================================================================
-       1. KONSTANTY, JEDNOTKY A KATALOG 105+ ZÁKLADNÍCH ČESKÝCH SUROVIN
+       1. KONSTANTY, JEDNOTKY A KATALOG ČESKÝCH SUROVIN S NUTRIČNÍMI HODNOTAMI
        ========================================================================== */
     const STORAGE_KEY    = 'chytry_nakup_planovac_v3';
     const AI_KEY_STORAGE = 'ai_gemini_api_key';
@@ -936,7 +1367,6 @@
       mrazak:  'Mrazák'
     };
 
-    /** Převod zapsaných zkratek/tvarů jednotek z textu na standardní jednotky aplikace */
     const UNIT_PARSE_MAP = {
       ks: 'ks', kus: 'ks', kusy: 'ks', kusu: 'ks',
       g: 'g', gr: 'g', gram: 'g', gramy: 'g', gramu: 'g',
@@ -954,140 +1384,205 @@
       spetka: 'špetka', spetky: 'špetka'
     };
 
-    /** Katalog více než 105 běžných českých surovin s výchozí jednotkou a uložením */
+    /** Definice 10 sledovaných vitamínů a minerálů + české zdroje pro doplnění */
+    const MICRONUTRIENT_META = [
+      {
+        key: 'iron', label: 'Železo', unit: 'mg', defaultFemale: 15, defaultMale: 10,
+        sources: 'Hovězí maso, červená čočka, dýňová semínka, špenát, ovesné vločky, vejce.',
+        tipFoods: ['Hovězí maso', 'Červená čočka', 'Dýňová semínka', 'Špenát']
+      },
+      {
+        key: 'magnesium', label: 'Hořčík', unit: 'mg', defaultFemale: 310, defaultMale: 380,
+        sources: 'Dýňová semínka, mandle, arašídové máslo, ovesné vločky, banán, hořká čokoláda.',
+        tipFoods: ['Dýňová semínka', 'Arašídové máslo', 'Mandle', 'Ovesné vločky']
+      },
+      {
+        key: 'calcium', label: 'Vápník', unit: 'mg', defaultFemale: 1000, defaultMale: 1000,
+        sources: 'Tvaroh, řecký jogurt, tvrdý sýr (eidam, parmezán), mléko, kefír, mák, brokolice.',
+        tipFoods: ['Tvaroh', 'Řecký jogurt', 'Eidam', 'Mléko']
+      },
+      {
+        key: 'zinc', label: 'Zinek', unit: 'mg', defaultFemale: 8, defaultMale: 11,
+        sources: 'Hovězí maso, dýňová semínka, tvrdý sýr, vejce, ovesné vločky, cizrna.',
+        tipFoods: ['Dýňová semínka', 'Hovězí maso', 'Vejce', 'Cizrna']
+      },
+      {
+        key: 'potassium', label: 'Draslík', unit: 'mg', defaultFemale: 3500, defaultMale: 3500,
+        sources: 'Brambory, batáty, banány, avokádo, losos, špenát, rajčata, fazole.',
+        tipFoods: ['Brambory', 'Banány', 'Avokádo', 'Batáty']
+      },
+      {
+        key: 'vitC', label: 'Vitamín C', unit: 'mg', defaultFemale: 80, defaultMale: 90,
+        sources: 'Červená paprika, brokolice, kiwi, pomeranč, jahody, citron, květák.',
+        tipFoods: ['Paprika', 'Brokolice', 'Kiwi', 'Borůvky']
+      },
+      {
+        key: 'vitD', label: 'Vitamín D', unit: 'µg', defaultFemale: 15, defaultMale: 15,
+        sources: 'Losos, makrela, sardinky, vaječný žloutek, máslo a obohacené mléčné výrobky.',
+        tipFoods: ['Losos', 'Vejce', 'Sardinky', 'Máslo']
+      },
+      {
+        key: 'vitB12', label: 'Vitamín B12', unit: 'µg', defaultFemale: 4, defaultMale: 4,
+        sources: 'Maso, losos, tuňák, vejce, tvaroh, řecký jogurt, tvrdé sýry a mléko.',
+        tipFoods: ['Losos', 'Vejce', 'Tvaroh', 'Kuřecí prsa']
+      },
+      {
+        key: 'folate', label: 'Kys. listová (B9)', unit: 'µg', defaultFemale: 300, defaultMale: 300,
+        sources: 'Listový špenát, brokolice, cizrna, červená čočka, avokádo, vejce.',
+        tipFoods: ['Baby špenát', 'Avokádo', 'Cizrna', 'Brokolice']
+      },
+      {
+        key: 'omega3', label: 'Omega-3', unit: 'g', defaultFemale: 1.5, defaultMale: 1.8,
+        sources: 'Losos, vlašské ořechy, chia semínka, lněné semínko, makrela, řepkový olej.',
+        tipFoods: ['Losos', 'Vlašské ořechy', 'Chia semínka', 'Avokádo']
+      }
+    ];
+
+    /**
+     * Katalog českých surovin + nutriční hodnoty na 100 g:
+     * n: [kcal, protein, carbs, fat, fiber, iron, magnesium, calcium, zinc, potassium, vitC, vitD, vitB12, folate, omega3]
+     * pg: typická hmotnost 1 ks v gramech
+     */
     const BASE_CATALOG = [
       // Mléčné výrobky a vejce
-      { name: 'Vejce', unit: 'ks', location: 'lednice' },
-      { name: 'Mléko', unit: 'ml', location: 'lednice' },
-      { name: 'Máslo', unit: 'g', location: 'lednice' },
-      { name: 'Smetana ke šlehání', unit: 'ml', location: 'lednice' },
-      { name: 'Smetana na vaření', unit: 'ml', location: 'lednice' },
-      { name: 'Zakysaná smetana', unit: 'g', location: 'lednice' },
-      { name: 'Bílý jogurt', unit: 'g', location: 'lednice' },
-      { name: 'Řecký jogurt', unit: 'g', location: 'lednice' },
-      { name: 'Tvaroh', unit: 'g', location: 'lednice' },
-      { name: 'Parmezán', unit: 'g', location: 'lednice' },
-      { name: 'Eidam', unit: 'g', location: 'lednice' },
-      { name: 'Gouda', unit: 'g', location: 'lednice' },
-      { name: 'Čedar', unit: 'g', location: 'lednice' },
-      { name: 'Mozzarella', unit: 'g', location: 'lednice' },
-      { name: 'Feta', unit: 'g', location: 'lednice' },
-      { name: 'Hermelín', unit: 'ks', location: 'lednice' },
-      { name: 'Niva', unit: 'g', location: 'lednice' },
-      { name: 'Žervé', unit: 'g', location: 'lednice' },
-      { name: 'Lučina', unit: 'g', location: 'lednice' },
-      { name: 'Ricotta', unit: 'g', location: 'lednice' },
-      { name: 'Mascarpone', unit: 'g', location: 'lednice' },
-      { name: 'Ovesné mléko', unit: 'ml', location: 'spiz' },
-      { name: 'Kokosové mléko', unit: 'ml', location: 'spiz' },
+      { name: 'Vejce', unit: 'ks', location: 'lednice', pg: 60, n: [143, 12.6, 0.7, 9.5, 0, 1.8, 12, 56, 1.3, 138, 0, 2.0, 1.1, 47, 0.1] },
+      { name: 'Mléko', unit: 'ml', location: 'lednice', pg: 250, n: [47, 3.3, 4.8, 1.5, 0, 0.03, 11, 120, 0.4, 150, 0.5, 0.1, 0.5, 5, 0.02] },
+      { name: 'Máslo', unit: 'g', location: 'lednice', pg: 250, n: [717, 0.9, 0.1, 81, 0, 0.02, 2, 24, 0.1, 24, 0, 1.5, 0.2, 3, 0.3] },
+      { name: 'Smetana ke šlehání', unit: 'ml', location: 'lednice', pg: 200, n: [315, 2.2, 3.1, 33, 0, 0.05, 7, 70, 0.2, 95, 0.5, 0.6, 0.2, 4, 0.15] },
+      { name: 'Smetana na vaření', unit: 'ml', location: 'lednice', pg: 200, n: [135, 2.9, 4.0, 12, 0, 0.05, 9, 95, 0.3, 120, 0.5, 0.2, 0.3, 4, 0.05] },
+      { name: 'Zakysaná smetana', unit: 'g', location: 'lednice', pg: 200, n: [175, 2.8, 3.6, 16, 0, 0.05, 10, 105, 0.3, 130, 0.5, 0.3, 0.3, 7, 0.08] },
+      { name: 'Bílý jogurt', unit: 'g', location: 'lednice', pg: 150, n: [65, 4.3, 4.7, 3.2, 0, 0.05, 12, 130, 0.5, 160, 0.5, 0.1, 0.4, 8, 0.02] },
+      { name: 'Řecký jogurt', unit: 'g', location: 'lednice', pg: 140, n: [95, 9.5, 4.0, 4.5, 0, 0.1, 12, 115, 0.6, 145, 0.5, 0.1, 0.6, 8, 0.03] },
+      { name: 'Tvaroh', unit: 'g', location: 'lednice', pg: 250, n: [105, 16.5, 3.8, 2.5, 0, 0.3, 13, 105, 0.7, 135, 0, 0.1, 0.8, 15, 0.02] },
+      { name: 'Parmezán', unit: 'g', location: 'lednice', pg: 100, n: [392, 35.8, 3.2, 25.8, 0, 0.8, 44, 1180, 3.2, 125, 0, 0.5, 1.4, 7, 0.2] },
+      { name: 'Eidam', unit: 'g', location: 'lednice', pg: 100, n: [310, 26.0, 1.5, 22.0, 0, 0.4, 30, 800, 3.5, 95, 0, 0.4, 1.5, 15, 0.15] },
+      { name: 'Gouda', unit: 'g', location: 'lednice', pg: 100, n: [356, 24.9, 2.2, 27.4, 0, 0.3, 29, 700, 3.9, 121, 0, 0.5, 1.5, 21, 0.2] },
+      { name: 'Čedar', unit: 'g', location: 'lednice', pg: 100, n: [403, 24.9, 1.3, 33.1, 0, 0.7, 28, 721, 3.1, 98, 0, 0.6, 0.8, 18, 0.2] },
+      { name: 'Mozzarella', unit: 'g', location: 'lednice', pg: 125, n: [250, 19.0, 2.2, 18.0, 0, 0.3, 20, 505, 2.5, 76, 0, 0.4, 1.2, 7, 0.1] },
+      { name: 'Feta', unit: 'g', location: 'lednice', pg: 150, n: [264, 14.2, 4.1, 21.3, 0, 0.7, 19, 493, 2.9, 62, 0, 0.4, 1.7, 32, 0.15] },
+      { name: 'Hermelín', unit: 'ks', location: 'lednice', pg: 100, n: [300, 19.8, 0.5, 24.3, 0, 0.3, 20, 388, 2.4, 187, 0, 0.4, 1.3, 62, 0.15] },
+      { name: 'Niva', unit: 'g', location: 'lednice', pg: 110, n: [353, 21.4, 2.3, 28.7, 0, 0.3, 23, 528, 2.7, 256, 0, 0.5, 1.2, 36, 0.2] },
+      { name: 'Žervé', unit: 'g', location: 'lednice', pg: 80, n: [240, 8.0, 3.5, 21.0, 0, 0.2, 10, 95, 0.5, 120, 0, 0.3, 0.4, 10, 0.1] },
+      { name: 'Lučina', unit: 'g', location: 'lednice', pg: 100, n: [255, 7.5, 3.0, 23.0, 0, 0.2, 10, 90, 0.5, 115, 0, 0.3, 0.4, 10, 0.1] },
+      { name: 'Ricotta', unit: 'g', location: 'lednice', pg: 250, n: [174, 11.3, 3.0, 13.0, 0, 0.4, 11, 207, 1.2, 105, 0, 0.2, 0.3, 12, 0.1] },
+      { name: 'Mascarpone', unit: 'g', location: 'lednice', pg: 250, n: [412, 4.8, 3.5, 42.0, 0, 0.1, 6, 70, 0.3, 85, 0, 0.6, 0.2, 5, 0.2] },
+      { name: 'Ovesné mléko', unit: 'ml', location: 'spiz', pg: 250, n: [46, 1.0, 6.7, 1.5, 0.8, 0.3, 8, 120, 0.2, 110, 0, 0.8, 0.4, 10, 0.05] },
+      { name: 'Kokosové mléko', unit: 'ml', location: 'spiz', pg: 400, n: [185, 1.6, 2.8, 19.0, 0.5, 1.6, 37, 16, 0.7, 220, 1.0, 0, 0, 14, 0] },
 
       // Zelenina a bylinky
-      { name: 'Cibule', unit: 'ks', location: 'spiz' },
-      { name: 'Červená cibule', unit: 'ks', location: 'spiz' },
-      { name: 'Jarní cibulka', unit: 'ks', location: 'lednice' },
-      { name: 'Česnek', unit: 'ks', location: 'spiz' },
-      { name: 'Brambory', unit: 'g', location: 'spiz' },
-      { name: 'Batáty', unit: 'g', location: 'spiz' },
-      { name: 'Mrkev', unit: 'ks', location: 'lednice' },
-      { name: 'Petržel', unit: 'ks', location: 'lednice' },
-      { name: 'Celer', unit: 'g', location: 'lednice' },
-      { name: 'Rajčata', unit: 'ks', location: 'lednice' },
-      { name: 'Cherry rajčata', unit: 'g', location: 'lednice' },
-      { name: 'Okurka', unit: 'ks', location: 'lednice' },
-      { name: 'Paprika', unit: 'ks', location: 'lednice' },
-      { name: 'Cuketa', unit: 'ks', location: 'lednice' },
-      { name: 'Lilek', unit: 'ks', location: 'lednice' },
-      { name: 'Brokolice', unit: 'ks', location: 'lednice' },
-      { name: 'Květák', unit: 'ks', location: 'lednice' },
-      { name: 'Špenát', unit: 'g', location: 'lednice' },
-      { name: 'Baby špenát', unit: 'g', location: 'lednice' },
-      { name: 'Rukola', unit: 'g', location: 'lednice' },
-      { name: 'Ledový salát', unit: 'ks', location: 'lednice' },
-      { name: 'Polníček', unit: 'g', location: 'lednice' },
-      { name: 'Pórek', unit: 'ks', location: 'lednice' },
-      { name: 'Žampiony', unit: 'g', location: 'lednice' },
-      { name: 'Dýně hokaido', unit: 'g', location: 'spiz' },
-      { name: 'Zelí', unit: 'g', location: 'lednice' },
-      { name: 'Červená řepa', unit: 'ks', location: 'lednice' },
-      { name: 'Avokádo', unit: 'ks', location: 'spiz' },
-      { name: 'Hrášek', unit: 'g', location: 'mrazak' },
-      { name: 'Mražený hrášek', unit: 'g', location: 'mrazak' },
-      { name: 'Mražená kukuřice', unit: 'g', location: 'mrazak' },
-      { name: 'Mražená brokolice', unit: 'g', location: 'mrazak' },
-      { name: 'Mražené fazolky', unit: 'g', location: 'mrazak' },
-      { name: 'Mražený špenát', unit: 'g', location: 'mrazak' },
-      { name: 'Kukuřice', unit: 'plechovka', location: 'spiz' },
-      { name: 'Bazalka', unit: 'hrst', location: 'lednice' },
-      { name: 'Pažitka', unit: 'hrst', location: 'lednice' },
-      { name: 'Koriandr', unit: 'hrst', location: 'lednice' },
-      { name: 'Zázvor', unit: 'g', location: 'lednice' },
+      { name: 'Cibule', unit: 'ks', location: 'spiz', pg: 85, n: [40, 1.1, 9.3, 0.1, 1.7, 0.2, 10, 23, 0.2, 146, 7.4, 0, 0, 19, 0] },
+      { name: 'Červená cibule', unit: 'ks', location: 'spiz', pg: 85, n: [40, 1.1, 9.3, 0.1, 1.7, 0.2, 10, 23, 0.2, 146, 7.4, 0, 0, 19, 0] },
+      { name: 'Jarní cibulka', unit: 'ks', location: 'lednice', pg: 25, n: [32, 1.8, 7.3, 0.2, 2.6, 1.5, 20, 72, 0.4, 276, 18.8, 0, 0, 64, 0.02] },
+      { name: 'Česnek', unit: 'ks', location: 'spiz', pg: 45, n: [149, 6.4, 33.1, 0.5, 2.1, 1.7, 25, 181, 1.2, 401, 31.2, 0, 0, 3, 0.02] },
+      { name: 'Brambory', unit: 'g', location: 'spiz', pg: 130, n: [77, 2.0, 17.5, 0.1, 2.2, 0.8, 23, 12, 0.3, 425, 19.7, 0, 0, 15, 0.01] },
+      { name: 'Batáty', unit: 'g', location: 'spiz', pg: 180, n: [86, 1.6, 20.1, 0.1, 3.0, 0.6, 25, 30, 0.3, 337, 2.4, 0, 0, 11, 0.01] },
+      { name: 'Mrkev', unit: 'ks', location: 'lednice', pg: 75, n: [41, 0.9, 9.6, 0.2, 2.8, 0.3, 12, 33, 0.2, 320, 5.9, 0, 0, 19, 0] },
+      { name: 'Petržel', unit: 'ks', location: 'lednice', pg: 80, n: [55, 2.0, 12.0, 0.4, 4.2, 1.2, 25, 45, 0.4, 400, 18.0, 0, 0, 30, 0] },
+      { name: 'Celer', unit: 'g', location: 'lednice', pg: 250, n: [42, 1.5, 9.2, 0.3, 1.8, 0.7, 20, 43, 0.3, 300, 8.0, 0, 0, 8, 0] },
+      { name: 'Rajčata', unit: 'ks', location: 'lednice', pg: 110, n: [18, 0.9, 3.9, 0.2, 1.2, 0.3, 11, 10, 0.2, 237, 13.7, 0, 0, 15, 0] },
+      { name: 'Cherry rajčata', unit: 'g', location: 'lednice', pg: 250, n: [20, 0.9, 4.2, 0.2, 1.3, 0.3, 12, 11, 0.2, 250, 16.0, 0, 0, 16, 0] },
+      { name: 'Okurka', unit: 'ks', location: 'lednice', pg: 250, n: [15, 0.7, 3.6, 0.1, 0.5, 0.3, 13, 16, 0.2, 147, 2.8, 0, 0, 7, 0.01] },
+      { name: 'Paprika', unit: 'ks', location: 'lednice', pg: 150, n: [31, 1.0, 6.0, 0.3, 2.1, 0.4, 12, 7, 0.3, 211, 127.0, 0, 0, 46, 0.02] },
+      { name: 'Cuketa', unit: 'ks', location: 'lednice', pg: 250, n: [17, 1.2, 3.1, 0.3, 1.0, 0.4, 18, 16, 0.3, 261, 17.9, 0, 0, 24, 0.03] },
+      { name: 'Lilek', unit: 'ks', location: 'lednice', pg: 300, n: [25, 1.0, 5.9, 0.2, 3.0, 0.2, 14, 9, 0.2, 229, 2.2, 0, 0, 22, 0.01] },
+      { name: 'Brokolice', unit: 'ks', location: 'lednice', pg: 350, n: [34, 2.8, 6.6, 0.4, 2.6, 0.7, 21, 47, 0.4, 316, 89.2, 0, 0, 63, 0.05] },
+      { name: 'Květák', unit: 'ks', location: 'lednice', pg: 500, n: [25, 1.9, 5.0, 0.3, 2.0, 0.4, 15, 22, 0.3, 299, 48.2, 0, 0, 57, 0.04] },
+      { name: 'Špenát', unit: 'g', location: 'lednice', pg: 100, n: [23, 2.9, 3.6, 0.4, 2.2, 2.7, 79, 99, 0.5, 558, 28.1, 0, 0, 194, 0.14] },
+      { name: 'Baby špenát', unit: 'g', location: 'lednice', pg: 100, n: [23, 2.9, 3.6, 0.4, 2.2, 2.7, 79, 99, 0.5, 558, 28.1, 0, 0, 194, 0.14] },
+      { name: 'Rukola', unit: 'g', location: 'lednice', pg: 80, n: [25, 2.6, 3.7, 0.7, 1.6, 1.5, 47, 160, 0.5, 369, 15.0, 0, 0, 97, 0.17] },
+      { name: 'Ledový salát', unit: 'ks', location: 'lednice', pg: 350, n: [14, 0.9, 3.0, 0.1, 1.2, 0.4, 7, 18, 0.2, 141, 2.8, 0, 0, 29, 0.02] },
+      { name: 'Polníček', unit: 'g', location: 'lednice', pg: 80, n: [21, 2.0, 3.6, 0.4, 1.7, 2.0, 13, 38, 0.6, 459, 38.0, 0, 0, 14, 0.1] },
+      { name: 'Pórek', unit: 'ks', location: 'lednice', pg: 150, n: [61, 1.5, 14.2, 0.3, 1.8, 2.1, 28, 59, 0.1, 180, 12.0, 0, 0, 64, 0.02] },
+      { name: 'Žampiony', unit: 'g', location: 'lednice', pg: 250, n: [22, 3.1, 3.3, 0.3, 1.0, 0.5, 9, 3, 0.5, 318, 2.1, 0.2, 0.04, 17, 0] },
+      { name: 'Dýně hokaido', unit: 'g', location: 'spiz', pg: 800, n: [44, 1.7, 10.0, 0.3, 2.4, 0.8, 18, 25, 0.3, 350, 12.0, 0, 0, 22, 0.02] },
+      { name: 'Zelí', unit: 'g', location: 'lednice', pg: 600, n: [25, 1.3, 5.8, 0.1, 2.5, 0.5, 12, 40, 0.2, 170, 36.6, 0, 0, 43, 0.01] },
+      { name: 'Červená řepa', unit: 'ks', location: 'lednice', pg: 150, n: [43, 1.6, 9.6, 0.2, 2.8, 0.8, 23, 16, 0.4, 325, 4.9, 0, 0, 109, 0.01] },
+      { name: 'Avokádo', unit: 'ks', location: 'spiz', pg: 150, n: [160, 2.0, 8.5, 14.7, 6.7, 0.6, 29, 12, 0.6, 485, 10.0, 0, 0, 81, 0.11] },
+      { name: 'Hrášek', unit: 'g', location: 'mrazak', pg: 300, n: [81, 5.4, 14.5, 0.4, 5.1, 1.5, 33, 25, 1.2, 244, 40.0, 0, 0, 65, 0.04] },
+      { name: 'Mražený hrášek', unit: 'g', location: 'mrazak', pg: 300, n: [77, 5.2, 13.6, 0.4, 4.8, 1.5, 28, 24, 1.0, 180, 18.0, 0, 0, 58, 0.04] },
+      { name: 'Mražená kukuřice', unit: 'g', location: 'mrazak', pg: 300, n: [86, 3.2, 19.0, 1.2, 2.4, 0.5, 28, 3, 0.5, 220, 6.0, 0, 0, 38, 0.02] },
+      { name: 'Mražená brokolice', unit: 'g', location: 'mrazak', pg: 350, n: [32, 2.8, 6.0, 0.3, 2.6, 0.7, 20, 45, 0.4, 280, 65.0, 0, 0, 55, 0.05] },
+      { name: 'Mražené fazolky', unit: 'g', location: 'mrazak', pg: 300, n: [31, 1.8, 7.0, 0.2, 3.2, 0.9, 22, 42, 0.2, 190, 11.0, 0, 0, 32, 0.04] },
+      { name: 'Mražený špenát', unit: 'g', location: 'mrazak', pg: 300, n: [25, 3.0, 3.8, 0.4, 2.4, 2.5, 70, 110, 0.5, 480, 18.0, 0, 0, 145, 0.12] },
+      { name: 'Kukuřice', unit: 'plechovka', location: 'spiz', pg: 280, n: [86, 3.2, 19.0, 1.2, 2.0, 0.5, 26, 3, 0.5, 210, 5.0, 0, 0, 35, 0.02] },
+      { name: 'Bazalka', unit: 'hrst', location: 'lednice', pg: 20, n: [23, 3.2, 2.7, 0.6, 1.6, 3.2, 64, 177, 0.8, 295, 18.0, 0, 0, 68, 0.3] },
+      { name: 'Pažitka', unit: 'hrst', location: 'lednice', pg: 20, n: [30, 3.3, 4.4, 0.7, 2.5, 1.6, 42, 92, 0.6, 296, 58.1, 0, 0, 105, 0.06] },
+      { name: 'Koriandr', unit: 'hrst', location: 'lednice', pg: 20, n: [23, 2.1, 3.7, 0.5, 2.8, 1.8, 26, 67, 0.5, 521, 27.0, 0, 0, 62, 0.02] },
+      { name: 'Zázvor', unit: 'g', location: 'lednice', pg: 50, n: [80, 1.8, 17.8, 0.8, 2.0, 0.6, 43, 16, 0.3, 415, 5.0, 0, 0, 11, 0.03] },
 
       // Ovoce
-      { name: 'Jablka', unit: 'ks', location: 'spiz' },
-      { name: 'Banány', unit: 'ks', location: 'spiz' },
-      { name: 'Citron', unit: 'ks', location: 'lednice' },
-      { name: 'Limetka', unit: 'ks', location: 'lednice' },
-      { name: 'Borůvky', unit: 'g', location: 'lednice' },
-      { name: 'Jahody', unit: 'g', location: 'lednice' },
-      { name: 'Maliny', unit: 'g', location: 'mrazak' },
-      { name: 'Mražené lesní ovoce', unit: 'g', location: 'mrazak' },
+      { name: 'Jablka', unit: 'ks', location: 'spiz', pg: 160, n: [52, 0.3, 13.8, 0.2, 2.4, 0.1, 5, 6, 0.04, 107, 4.6, 0, 0, 3, 0.01] },
+      { name: 'Banány', unit: 'ks', location: 'spiz', pg: 120, n: [89, 1.1, 22.8, 0.3, 2.6, 0.3, 27, 5, 0.2, 358, 8.7, 0, 0, 20, 0.03] },
+      { name: 'Citron', unit: 'ks', location: 'lednice', pg: 85, n: [29, 1.1, 9.3, 0.3, 2.8, 0.6, 8, 26, 0.1, 138, 53.0, 0, 0, 11, 0.02] },
+      { name: 'Limetka', unit: 'ks', location: 'lednice', pg: 65, n: [30, 0.7, 10.5, 0.2, 2.8, 0.6, 6, 33, 0.1, 102, 29.1, 0, 0, 8, 0.01] },
+      { name: 'Borůvky', unit: 'g', location: 'lednice', pg: 125, n: [57, 0.7, 14.5, 0.3, 2.4, 0.3, 6, 6, 0.2, 77, 9.7, 0, 0, 6, 0.06] },
+      { name: 'Jahody', unit: 'g', location: 'lednice', pg: 250, n: [32, 0.7, 7.7, 0.3, 2.0, 0.4, 13, 16, 0.1, 153, 58.8, 0, 0, 24, 0.06] },
+      { name: 'Maliny', unit: 'g', location: 'mrazak', pg: 200, n: [52, 1.2, 11.9, 0.7, 6.5, 0.7, 22, 25, 0.4, 151, 26.2, 0, 0, 21, 0.13] },
+      { name: 'Kiwi', unit: 'ks', location: 'spiz', pg: 85, n: [61, 1.1, 14.7, 0.5, 3.0, 0.3, 17, 34, 0.1, 312, 92.7, 0, 0, 25, 0.04] },
+      { name: 'Mražené lesní ovoce', unit: 'g', location: 'mrazak', pg: 300, n: [48, 0.9, 11.5, 0.4, 4.0, 0.5, 14, 18, 0.2, 140, 22.0, 0, 0, 15, 0.08] },
 
       // Maso, ryby, rostlinné bílkoviny
-      { name: 'Kuřecí prsa', unit: 'g', location: 'lednice' },
-      { name: 'Kuřecí stehenní řízky', unit: 'g', location: 'lednice' },
-      { name: 'Krůtí prsa', unit: 'g', location: 'lednice' },
-      { name: 'Mleté hovězí maso', unit: 'g', location: 'lednice' },
-      { name: 'Mleté maso', unit: 'g', location: 'lednice' },
-      { name: 'Vepřová panenka', unit: 'g', location: 'lednice' },
-      { name: 'Slanina', unit: 'g', location: 'lednice' },
-      { name: 'Šunka', unit: 'g', location: 'lednice' },
-      { name: 'Losos', unit: 'g', location: 'lednice' },
-      { name: 'Tuňák v konzervě', unit: 'plechovka', location: 'spiz' },
-      { name: 'Tofu', unit: 'g', location: 'lednice' },
-      { name: 'Tempeh', unit: 'g', location: 'lednice' },
+      { name: 'Kuřecí prsa', unit: 'g', location: 'lednice', pg: 180, n: [120, 23.0, 0, 2.6, 0, 0.7, 29, 11, 0.9, 330, 0, 0.1, 0.3, 4, 0.04] },
+      { name: 'Kuřecí stehenní řízky', unit: 'g', location: 'lednice', pg: 160, n: [165, 20.0, 0, 9.0, 0, 1.0, 23, 11, 1.9, 255, 0, 0.2, 0.5, 8, 0.1] },
+      { name: 'Krůtí prsa', unit: 'g', location: 'lednice', pg: 180, n: [115, 24.0, 0, 1.8, 0, 0.8, 30, 12, 1.3, 305, 0, 0.1, 0.4, 7, 0.03] },
+      { name: 'Hovězí maso', unit: 'g', location: 'lednice', pg: 200, n: [185, 22.0, 0, 10.5, 0, 2.6, 22, 12, 4.8, 340, 0, 0.2, 2.5, 8, 0.1] },
+      { name: 'Mleté hovězí maso', unit: 'g', location: 'lednice', pg: 250, n: [215, 20.5, 0, 14.5, 0, 2.4, 20, 14, 4.5, 310, 0, 0.2, 2.4, 7, 0.12] },
+      { name: 'Mleté maso', unit: 'g', location: 'lednice', pg: 250, n: [220, 19.5, 0, 15.5, 0, 1.8, 20, 12, 3.4, 300, 0, 0.3, 1.6, 6, 0.12] },
+      { name: 'Vepřová panenka', unit: 'g', location: 'lednice', pg: 250, n: [143, 22.5, 0, 5.5, 0, 1.1, 27, 7, 2.1, 390, 0, 0.4, 0.7, 5, 0.05] },
+      { name: 'Slanina', unit: 'g', location: 'lednice', pg: 100, n: [420, 14.0, 1.0, 40.0, 0, 0.8, 14, 8, 1.6, 210, 0, 0.6, 0.8, 2, 0.2] },
+      { name: 'Šunka', unit: 'g', location: 'lednice', pg: 100, n: [115, 19.5, 1.0, 3.5, 0, 0.9, 20, 8, 1.5, 290, 0, 0.3, 0.7, 3, 0.03] },
+      { name: 'Losos', unit: 'g', location: 'lednice', pg: 150, n: [208, 20.4, 0, 13.4, 0, 0.8, 29, 12, 0.6, 363, 0, 11.0, 3.2, 25, 2.2] },
+      { name: 'Sardinky', unit: 'plechovka', location: 'spiz', pg: 125, n: [208, 24.6, 0, 11.5, 0, 2.9, 39, 382, 1.3, 397, 0, 4.8, 8.9, 10, 1.5] },
+      { name: 'Tuňák v konzervě', unit: 'plechovka', location: 'spiz', pg: 150, n: [116, 25.5, 0, 1.0, 0, 1.3, 30, 11, 0.8, 237, 0, 1.7, 2.5, 4, 0.28] },
+      { name: 'Tofu', unit: 'g', location: 'lednice', pg: 180, n: [125, 13.5, 2.0, 7.0, 1.2, 2.2, 45, 220, 1.1, 160, 0, 0, 0, 18, 0.4] },
+      { name: 'Tempeh', unit: 'g', location: 'lednice', pg: 200, n: [192, 20.3, 7.6, 10.8, 5.0, 2.7, 81, 111, 1.1, 412, 0, 0, 0.1, 24, 0.3] },
 
       // Přílohy, obilniny, pečivo
-      { name: 'Rýže', unit: 'g', location: 'spiz' },
-      { name: 'Jasmínová rýže', unit: 'g', location: 'spiz' },
-      { name: 'Basmati rýže', unit: 'g', location: 'spiz' },
-      { name: 'Těstoviny', unit: 'g', location: 'spiz' },
-      { name: 'Špagety', unit: 'g', location: 'spiz' },
-      { name: 'Penne', unit: 'g', location: 'spiz' },
-      { name: 'Gnocchi', unit: 'g', location: 'lednice' },
-      { name: 'Kuskus', unit: 'g', location: 'spiz' },
-      { name: 'Bulgur', unit: 'g', location: 'spiz' },
-      { name: 'Quinoa', unit: 'g', location: 'spiz' },
-      { name: 'Ovesné vločky', unit: 'g', location: 'spiz' },
-      { name: 'Chléb', unit: 'ks', location: 'spiz' },
-      { name: 'Toustový chléb', unit: 'balení', location: 'spiz' },
-      { name: 'Rohlíky', unit: 'ks', location: 'spiz' },
-      { name: 'Tortilly', unit: 'balení', location: 'spiz' },
+      { name: 'Rýže', unit: 'g', location: 'spiz', pg: 200, n: [358, 7.1, 79.0, 0.7, 1.3, 0.8, 25, 10, 1.1, 115, 0, 0, 0, 8, 0.02] },
+      { name: 'Jasmínová rýže', unit: 'g', location: 'spiz', pg: 200, n: [356, 7.0, 78.5, 0.6, 1.2, 0.8, 24, 10, 1.1, 110, 0, 0, 0, 8, 0.02] },
+      { name: 'Basmati rýže', unit: 'g', location: 'spiz', pg: 200, n: [355, 7.5, 78.0, 0.7, 1.4, 0.8, 26, 10, 1.1, 115, 0, 0, 0, 9, 0.02] },
+      { name: 'Těstoviny', unit: 'g', location: 'spiz', pg: 200, n: [355, 12.5, 71.0, 1.5, 3.2, 1.3, 53, 21, 1.4, 223, 0, 0, 0, 18, 0.04] },
+      { name: 'Špagety', unit: 'g', location: 'spiz', pg: 200, n: [355, 12.5, 71.0, 1.5, 3.2, 1.3, 53, 21, 1.4, 223, 0, 0, 0, 18, 0.04] },
+      { name: 'Penne', unit: 'g', location: 'spiz', pg: 200, n: [355, 12.5, 71.0, 1.5, 3.2, 1.3, 53, 21, 1.4, 223, 0, 0, 0, 18, 0.04] },
+      { name: 'Gnocchi', unit: 'g', location: 'lednice', pg: 250, n: [165, 3.8, 34.0, 1.0, 1.8, 0.7, 18, 12, 0.4, 210, 4.0, 0, 0, 12, 0.02] },
+      { name: 'Kuskus', unit: 'g', location: 'spiz', pg: 200, n: [365, 12.8, 72.5, 0.6, 5.0, 1.1, 44, 24, 0.8, 166, 0, 0, 0, 20, 0.02] },
+      { name: 'Bulgur', unit: 'g', location: 'spiz', pg: 200, n: [342, 12.3, 75.9, 1.3, 12.5, 2.5, 164, 35, 1.9, 410, 0, 0, 0, 27, 0.04] },
+      { name: 'Quinoa', unit: 'g', location: 'spiz', pg: 200, n: [368, 14.1, 64.2, 6.1, 7.0, 4.6, 197, 47, 3.1, 563, 0, 0, 0, 184, 0.26] },
+      { name: 'Ovesné vločky', unit: 'g', location: 'spiz', pg: 80, n: [375, 13.2, 66.0, 6.5, 10.1, 4.3, 138, 52, 3.6, 362, 0, 0, 0, 32, 0.11] },
+      { name: 'Chléb', unit: 'ks', location: 'spiz', pg: 120, n: [248, 8.2, 48.0, 1.5, 5.2, 2.1, 45, 35, 1.2, 175, 0, 0, 0, 35, 0.05] },
+      { name: 'Toustový chléb', unit: 'balení', location: 'spiz', pg: 500, n: [265, 8.8, 49.0, 3.2, 3.0, 2.4, 32, 95, 0.9, 130, 0, 0, 0, 45, 0.08] },
+      { name: 'Rohlíky', unit: 'ks', location: 'spiz', pg: 45, n: [290, 9.2, 56.0, 2.8, 2.5, 1.5, 24, 25, 0.7, 115, 0, 0, 0, 30, 0.04] },
+      { name: 'Tortilly', unit: 'balení', location: 'spiz', pg: 65, n: [305, 8.2, 51.0, 7.2, 3.2, 2.2, 30, 85, 0.8, 145, 0, 0, 0, 38, 0.1] },
 
-      // Spíž, luštěniny, konzervy, pečení
-      { name: 'Hladká mouka', unit: 'g', location: 'spiz' },
-      { name: 'Polohrubá mouka', unit: 'g', location: 'spiz' },
-      { name: 'Cukr', unit: 'g', location: 'spiz' },
-      { name: 'Med', unit: 'g', location: 'spiz' },
-      { name: 'Prášek do pečiva', unit: 'balení', location: 'spiz' },
-      { name: 'Droždí', unit: 'balení', location: 'lednice' },
-      { name: 'Kakao', unit: 'g', location: 'spiz' },
-      { name: 'Hořká čokoláda', unit: 'g', location: 'spiz' },
-      { name: 'Olivový olej', unit: 'ml', location: 'spiz' },
-      { name: 'Slunečnicový olej', unit: 'ml', location: 'spiz' },
-      { name: 'Sójová omáčka', unit: 'ml', location: 'spiz' },
-      { name: 'Rajčatový protlak', unit: 'g', location: 'spiz' },
-      { name: 'Krájená rajčata', unit: 'plechovka', location: 'spiz' },
-      { name: 'Passata', unit: 'ml', location: 'spiz' },
-      { name: 'Pesto', unit: 'g', location: 'lednice' },
-      { name: 'Hořčice', unit: 'g', location: 'lednice' },
-      { name: 'Kečup', unit: 'g', location: 'lednice' },
-      { name: 'Majonéza', unit: 'g', location: 'lednice' },
-      { name: 'Cizrna', unit: 'plechovka', location: 'spiz' },
-      { name: 'Červená čočka', unit: 'g', location: 'spiz' },
-      { name: 'Fazole', unit: 'plechovka', location: 'spiz' },
-      { name: 'Vývar', unit: 'ml', location: 'spiz' },
-      { name: 'Vlašské ořechy', unit: 'g', location: 'spiz' },
-      { name: 'Mandle', unit: 'g', location: 'spiz' }
+      // Spíž, luštěniny, konzervy, semínka, ořechy, pečení
+      { name: 'Hladká mouka', unit: 'g', location: 'spiz', pg: 100, n: [350, 10.5, 73.0, 1.2, 3.0, 1.2, 25, 18, 0.8, 120, 0, 0, 0, 22, 0.03] },
+      { name: 'Polohrubá mouka', unit: 'g', location: 'spiz', pg: 100, n: [350, 10.8, 72.5, 1.3, 3.2, 1.3, 28, 18, 0.9, 125, 0, 0, 0, 22, 0.03] },
+      { name: 'Cukr', unit: 'g', location: 'spiz', pg: 100, n: [398, 0, 99.8, 0, 0, 0.05, 0, 1, 0, 2, 0, 0, 0, 0, 0] },
+      { name: 'Med', unit: 'g', location: 'spiz', pg: 20, n: [304, 0.3, 82.4, 0, 0.2, 0.4, 2, 6, 0.2, 52, 0.5, 0, 0, 2, 0] },
+      { name: 'Arašídové máslo', unit: 'g', location: 'spiz', pg: 30, n: [598, 25.0, 16.0, 50.0, 8.0, 2.0, 168, 49, 2.9, 649, 0, 0, 0, 86, 0.1] },
+      { name: 'Dýňová semínka', unit: 'g', location: 'spiz', pg: 30, n: [559, 30.2, 10.7, 49.0, 6.0, 8.8, 592, 46, 7.8, 809, 1.9, 0, 0, 58, 0.12] },
+      { name: 'Chia semínka', unit: 'g', location: 'spiz', pg: 15, n: [486, 16.5, 42.1, 30.7, 34.4, 7.7, 335, 631, 4.6, 407, 1.6, 0, 0, 49, 17.8] },
+      { name: 'Lněné semínko', unit: 'g', location: 'spiz', pg: 15, n: [534, 18.3, 28.9, 42.2, 27.3, 5.7, 392, 255, 4.3, 813, 0.6, 0, 0, 87, 22.8] },
+      { name: 'Vlašské ořechy', unit: 'g', location: 'spiz', pg: 30, n: [654, 15.2, 13.7, 65.2, 6.7, 2.9, 158, 98, 3.1, 441, 1.3, 0, 0, 98, 9.1] },
+      { name: 'Mandle', unit: 'g', location: 'spiz', pg: 30, n: [579, 21.2, 21.6, 49.9, 12.5, 3.7, 270, 269, 3.1, 733, 0, 0, 0, 44, 0.01] },
+      { name: 'Prášek do pečiva', unit: 'balení', location: 'spiz', pg: 12, n: [100, 0, 25.0, 0, 0, 0, 10, 4000, 0, 20, 0, 0, 0, 0, 0] },
+      { name: 'Droždí', unit: 'balení', location: 'lednice', pg: 42, n: [105, 12.0, 11.0, 1.8, 7.0, 3.2, 35, 25, 2.8, 520, 0, 0, 0, 900, 0] },
+      { name: 'Kakao', unit: 'g', location: 'spiz', pg: 15, n: [340, 19.6, 32.0, 13.7, 33.2, 13.9, 499, 128, 6.8, 1524, 0, 0, 0, 32, 0.03] },
+      { name: 'Hořká čokoláda', unit: 'g', location: 'spiz', pg: 30, n: [560, 7.8, 45.0, 38.0, 10.9, 8.0, 176, 56, 2.3, 559, 0, 0, 0.2, 10, 0.05] },
+      { name: 'Olivový olej', unit: 'ml', location: 'spiz', pg: 15, n: [884, 0, 0, 100, 0, 0.6, 0, 1, 0, 1, 0, 0, 0, 0, 0.76] },
+      { name: 'Slunečnicový olej', unit: 'ml', location: 'spiz', pg: 15, n: [884, 0, 0, 100, 0, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0.05] },
+      { name: 'Sójová omáčka', unit: 'ml', location: 'spiz', pg: 15, n: [53, 8.1, 4.9, 0.1, 0.8, 1.5, 40, 20, 0.4, 212, 0, 0, 0, 14, 0] },
+      { name: 'Rajčatový protlak', unit: 'g', location: 'spiz', pg: 140, n: [82, 4.3, 18.9, 0.5, 4.1, 3.0, 42, 36, 0.6, 1014, 21.9, 0, 0, 12, 0.02] },
+      { name: 'Krájená rajčata', unit: 'plechovka', location: 'spiz', pg: 400, n: [24, 1.2, 4.5, 0.2, 1.3, 0.6, 15, 22, 0.2, 240, 12.0, 0, 0, 12, 0.01] },
+      { name: 'Passata', unit: 'ml', location: 'spiz', pg: 500, n: [30, 1.5, 5.5, 0.3, 1.5, 0.8, 18, 20, 0.3, 290, 14.0, 0, 0, 14, 0.01] },
+      { name: 'Pesto', unit: 'g', location: 'lednice', pg: 190, n: [440, 5.5, 6.5, 43.0, 2.5, 1.4, 38, 180, 0.9, 175, 4.0, 0.1, 0.2, 22, 0.35] },
+      { name: 'Hořčice', unit: 'g', location: 'lednice', pg: 20, n: [95, 5.2, 7.5, 4.8, 3.8, 1.8, 48, 65, 0.7, 165, 1.0, 0, 0, 12, 0.2] },
+      { name: 'Kečup', unit: 'g', location: 'lednice', pg: 20, n: [105, 1.3, 25.0, 0.2, 0.8, 0.4, 14, 15, 0.2, 280, 6.0, 0, 0, 9, 0] },
+      { name: 'Majonéza', unit: 'g', location: 'lednice', pg: 20, n: [680, 1.1, 1.5, 75.0, 0, 0.3, 2, 12, 0.2, 25, 0, 0.4, 0.2, 6, 0.5] },
+      { name: 'Cizrna', unit: 'plechovka', location: 'spiz', pg: 240, n: [139, 7.2, 22.5, 2.1, 6.0, 2.1, 36, 42, 1.1, 215, 1.0, 0, 0, 110, 0.05] },
+      { name: 'Červená čočka', unit: 'g', location: 'spiz', pg: 100, n: [345, 24.6, 60.0, 1.1, 10.8, 6.5, 72, 35, 3.3, 677, 1.5, 0, 0, 180, 0.05] },
+      { name: 'Fazole', unit: 'plechovka', location: 'spiz', pg: 240, n: [115, 7.8, 20.0, 0.6, 6.8, 2.2, 38, 35, 0.9, 310, 1.0, 0, 0, 85, 0.08] },
+      { name: 'Vývar', unit: 'ml', location: 'spiz', pg: 250, n: [12, 1.4, 0.8, 0.4, 0, 0.1, 3, 5, 0.1, 45, 0, 0, 0.1, 2, 0] }
     ];
 
     /** Rychlé chipsy pro doplnění zásob doma na 1 klepnutí */
@@ -1100,17 +1595,17 @@
       { name: 'Brambory', amount: 1000, unit: 'g', location: 'spiz' },
       { name: 'Rýže', amount: 500, unit: 'g', location: 'spiz' },
       { name: 'Těstoviny', amount: 500, unit: 'g', location: 'spiz' },
-      { name: 'Hladká mouka', amount: 1000, unit: 'g', location: 'spiz' },
+      { name: 'Ovesné vločky', amount: 500, unit: 'g', location: 'spiz' },
+      { name: 'Tvaroh', amount: 250, unit: 'g', location: 'lednice' },
       { name: 'Smetana ke šlehání', amount: 200, unit: 'ml', location: 'lednice' },
       { name: 'Mražený hrášek', amount: 300, unit: 'g', location: 'mrazak' },
       { name: 'Kuřecí prsa', amount: 500, unit: 'g', location: 'lednice' },
-      { name: 'Eidam', amount: 200, unit: 'g', location: 'lednice' },
-      { name: 'Olivový olej', amount: 500, unit: 'ml', location: 'spiz' },
-      { name: 'Krájená rajčata', amount: 1, unit: 'plechovka', location: 'spiz' }
+      { name: 'Arašídové máslo', amount: 350, unit: 'g', location: 'spiz' },
+      { name: 'Banány', amount: 4, unit: 'ks', location: 'spiz' }
     ];
 
     /* ==========================================================================
-       2. POMOCNÉ FUNKCE (TEXT, JEDNOTKY, TOAST)
+       2. POMOCNÉ FUNKCE (TEXT, DATUM, JEDNOTKY, TOAST)
        ========================================================================== */
     function uid(prefix = 'id') {
       return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
@@ -1146,7 +1641,31 @@
       return String(rounded).replace('.', ',');
     }
 
-    /** Vrací skupinu jednotky a převodní koeficient do základní jednotky (g / ml) */
+    function formatInt(val) {
+      const num = Math.round(Number(val) || 0);
+      return num.toLocaleString('cs-CZ');
+    }
+
+    function getLocalDateKey(offsetDays = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function formatDateCzech(dateKey) {
+      const today = getLocalDateKey(0);
+      const yesterday = getLocalDateKey(-1);
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const dt = new Date(y, (m || 1) - 1, d || 1);
+      const formatted = dt.toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'numeric' });
+      if (dateKey === today) return { title: 'Dnes', sub: formatted };
+      if (dateKey === yesterday) return { title: 'Včera', sub: formatted };
+      return { title: capitalizeFirst(formatted), sub: dateKey };
+    }
+
     function getUnitInfo(unit) {
       switch (unit) {
         case 'g':  return { family: 'mass',   factor: 1 };
@@ -1188,8 +1707,6 @@
     /* ==========================================================================
        3. DVOUVRSTVÝ MOTOR SJEDNOCOVÁNÍ SUROVIN (MRAŽENÝ HRÁŠEK = HRÁŠEK)
        ========================================================================== */
-
-    /** Výchozích 22 užitečných českých skupin stejných surovin */
     function getDefaultUnificationGroups() {
       return [
         { id: 'ug_hrasek',    canonical: 'Hrášek',      aliases: ['hrášek', 'mražený hrášek', 'sterilovaný hrášek', 'zelený hrášek', 'hrášku'] },
@@ -1217,7 +1734,6 @@
       ];
     }
 
-    /** Odstraní závorky, interpunkci a převede text do čisté ASCII podoby */
     function cleanRawPhrase(str) {
       return stripDiacritics(str)
         .replace(/\([^)]*\)/g, ' ')
@@ -1230,7 +1746,8 @@
       'kokosove mleko', 'ovesne mleko', 'mandlove mleko', 'sojove mleko',
       'zakysana smetana', 'mlete maso', 'mlete hovezi', 'rajcatovy protlak',
       'krajena rajcata', 'sojova omacka', 'prasek do peciva', 'toustovy chleb',
-      'cervena cocka', 'jarni cibulka'
+      'cervena cocka', 'jarni cibulka', 'arasidove maslo', 'dynova seminka',
+      'chia seminka', 'lnene seminko', 'vlasske orechy', 'horka cokolada'
     ];
 
     const STRIP_ADJECTIVES = new Set([
@@ -1245,7 +1762,6 @@
       'trvanlive', 'psenicna', 'hladka', 'polohruba', 'hruba'
     ]);
 
-    /** Vrstva 2: automatická česká normalizace pro suroviny mimo explicitní skupiny */
     function autoNormalizeCzech(rawName) {
       const cleaned = cleanRawPhrase(rawName)
         .replace(/\b(ke slehani|na vareni|na peceni|do polevky)\b/g, ' ')
@@ -1258,11 +1774,9 @@
       }
 
       const tokens = cleaned.split(' ').filter(t => t && !STRIP_ADJECTIVES.has(t));
-      const base = (tokens.length > 0 ? tokens : cleaned.split(' ')).join(' ').trim();
-      return base;
+      return (tokens.length > 0 ? tokens : cleaned.split(' ')).join(' ').trim();
     }
 
-    /** Vrací jednotný kanonický klíč suroviny (nejprve dle skupin sjednocení, pak auto-normalizace) */
     function getCanonicalKey(rawName) {
       const cleaned = cleanRawPhrase(rawName);
       if (!cleaned) return '';
@@ -1271,7 +1785,6 @@
         ? state.unificationGroups
         : [];
 
-      // 1. Přesná shoda s aliasem nebo hlavním názvem skupiny
       for (const grp of groups) {
         const canonClean = cleanRawPhrase(grp.canonical);
         if (cleaned === canonClean) return `grp:${grp.id}`;
@@ -1280,7 +1793,6 @@
         }
       }
 
-      // 2. Shoda po odstranění přívlastků (např. "bio mražený hrášek" -> "hrasek")
       const auto = autoNormalizeCzech(rawName);
       for (const grp of groups) {
         if (auto === cleanRawPhrase(grp.canonical)) return `grp:${grp.id}`;
@@ -1292,10 +1804,8 @@
       return `auto:${auto}`;
     }
 
-    /** Vyhodnotí jednu požadovanou surovinu proti domácím zásobám (sčítá všechny sjednocené položky) */
     function evaluateIngredientMatch(req, pantryItems) {
       const reqClean = cleanRawPhrase(req.name);
-      // Vodu, sůl a pepř neoznačujeme jako chybějící surovinu na nákup
       if (['voda', 'vody', 'horka voda', 'tepla voda', 'studena voda', 'sul', 'pepr', 'cerny pepr'].includes(reqClean)) {
         return {
           status: 'have',
@@ -1333,7 +1843,6 @@
       const matchedNames = [...new Set(matchedItems.map(i => i.name))];
       const unifiedViaDifferentName = matchedNames.some(n => cleanRawPhrase(n) !== reqClean);
 
-      // Pokusíme se převést a sečíst kompatibilní jednotky (g/kg, ml/l nebo shodné jednotky)
       let compatibleTotalInReqUnit = 0;
       let hasCompatible = false;
       let hasIncompatible = false;
@@ -1389,7 +1898,6 @@
         };
       }
 
-      // Surovina je doma v jiné nekompatibilní jednotce (např. 1 ks Česnek vs. 2 stroužek) -> uznáme jako doma
       return {
         status: 'have',
         matchedItems,
@@ -1402,7 +1910,6 @@
       };
     }
 
-    /** Vyhodnotí celý recept proti aktuálním domácím zásobám */
     function evaluateRecipe(recipe) {
       const details = (recipe.ingredients || []).map(ing => ({
         ing,
@@ -1419,11 +1926,254 @@
     }
 
     /* ==========================================================================
-       4. UKÁZKOVÁ DATA PŘI PRVNÍM SPUŠTĚNÍ (PŘÍMO UKAZUJÍ SJEDNOCOVÁNÍ V PRAXI)
+       4. VÝŽIVOVÝ ENGINE (OFFLINE KALKULAČKA Z KATALOGU, PROFIL CÍLŮ A 7DENNÍ RADAR)
+       ========================================================================== */
+    const ALL_NUTRIENT_KEYS = [
+      'kcal', 'protein', 'carbs', 'fat', 'fiber',
+      'iron', 'magnesium', 'calcium', 'zinc', 'potassium',
+      'vitC', 'vitD', 'vitB12', 'folate', 'omega3'
+    ];
+
+    function emptyNutrients() {
+      const obj = {};
+      ALL_NUTRIENT_KEYS.forEach(k => { obj[k] = 0; });
+      return obj;
+    }
+
+    function addNutrients(target, source, multiplier = 1) {
+      ALL_NUTRIENT_KEYS.forEach(k => {
+        target[k] = Math.round(((target[k] || 0) + (Number(source?.[k]) || 0) * multiplier) * 100) / 100;
+      });
+      return target;
+    }
+
+    function catalogTupleToNutrients(arr) {
+      const obj = {};
+      ALL_NUTRIENT_KEYS.forEach((k, idx) => {
+        obj[k] = Number(arr?.[idx]) || 0;
+      });
+      return obj;
+    }
+
+    /** Výchozí profil cílů (zdravé nabírání ~2500 kcal, volitelně plně přizpůsobitelný) */
+    function getDefaultNutritionProfile() {
+      return {
+        configured: false,
+        goalMode: 'gain',       // 'gain' | 'maintain' | 'lose'
+        sex: 'female',
+        age: 25,
+        weight: 60,
+        height: 168,
+        activity: 1.6,
+        targets: {
+          kcal: 2500,
+          protein: 120,
+          carbs: 310,
+          fat: 80,
+          fiber: 30,
+          iron: 15,
+          magnesium: 310,
+          calcium: 1000,
+          zinc: 8,
+          potassium: 3500,
+          vitC: 80,
+          vitD: 15,
+          vitB12: 4,
+          folate: 300,
+          omega3: 1.5
+        }
+      };
+    }
+
+    /** Orientační výpočet doporučených hodnot podle zadaného profilu */
+    function computeRecommendedProfileTargets({ goalMode, sex, age, weight, height, activity }) {
+      const w = Math.max(35, Math.min(220, Number(weight) || 60));
+      const h = Math.max(130, Math.min(225, Number(height) || 168));
+      const a = Math.max(15, Math.min(99, Number(age) || 25));
+      const act = Number(activity) || 1.5;
+
+      const bmr = sex === 'male'
+        ? (10 * w + 6.25 * h - 5 * a + 5)
+        : (10 * w + 6.25 * h - 5 * a - 161);
+
+      let tdee = Math.round((bmr * act) / 10) * 10;
+      if (goalMode === 'gain') tdee += 300;
+      if (goalMode === 'lose') tdee = Math.max(1300, tdee - 350);
+
+      const proteinPerKg = goalMode === 'lose' ? 1.9 : goalMode === 'gain' ? 1.85 : 1.5;
+      const protein = Math.round(w * proteinPerKg);
+      const fat = Math.round(w * 0.95);
+      const carbs = Math.max(60, Math.round((tdee - protein * 4 - fat * 9) / 4));
+      const fiber = Math.max(25, Math.round((tdee / 1000) * 13));
+
+      const isFemale = sex !== 'male';
+      return {
+        kcal: tdee,
+        protein,
+        carbs,
+        fat,
+        fiber,
+        iron: isFemale ? 15 : 10,
+        magnesium: isFemale ? 310 : 380,
+        calcium: 1000,
+        zinc: isFemale ? 8 : 11,
+        potassium: 3500,
+        vitC: isFemale ? 80 : 90,
+        vitD: 15,
+        vitB12: 4,
+        folate: 300,
+        omega3: isFemale ? 1.5 : 1.8
+      };
+    }
+
+    /** Vyhledá položku v katalogu (přesně, přes kanonický klíč nebo částečnou shodou) */
+    function findCatalogNutritionMeta(rawName) {
+      const clean = cleanRawPhrase(rawName);
+      if (!clean) return null;
+
+      // 1. Přesná shoda
+      let match = BASE_CATALOG.find(c => cleanRawPhrase(c.name) === clean);
+      if (match) return match;
+
+      // 2. Shoda přes kanonický klíč
+      const key = getCanonicalKey(rawName);
+      match = BASE_CATALOG.find(c => getCanonicalKey(c.name) === key);
+      if (match) return match;
+
+      // 3. Částečná shoda slova
+      match = BASE_CATALOG.find(c => {
+        const cc = cleanRawPhrase(c.name);
+        return cc.includes(clean) || clean.includes(cc);
+      });
+      return match || null;
+    }
+
+    function estimateGramsForIngredient(amount, unit, catalogMeta) {
+      const qty = Number(amount) || 0;
+      const pg = catalogMeta?.pg || 100;
+      switch (unit) {
+        case 'g':         return qty;
+        case 'kg':        return qty * 1000;
+        case 'ml':        return qty;
+        case 'l':         return qty * 1000;
+        case 'ks':        return qty * pg;
+        case 'lžíce':     return qty * 15;
+        case 'lžička':    return qty * 5;
+        case 'hrst':      return qty * 30;
+        case 'stroužek':  return qty * 5;
+        case 'plechovka': return qty * (catalogMeta?.pg || 240);
+        case 'balení':    return qty * (catalogMeta?.pg || 200);
+        case 'hrnek':     return qty * 200;
+        case 'špetka':    return qty * 1;
+        default:          return qty * 100;
+      }
+    }
+
+    /** Spočítá živiny jedné suroviny z katalogu (100% offline) */
+    function calculateIngredientNutrients(name, amount, unit) {
+      const clean = cleanRawPhrase(name);
+      if (['voda', 'vody', 'sul', 'pepr', 'cerny pepr'].includes(clean)) {
+        return emptyNutrients();
+      }
+
+      const meta = findCatalogNutritionMeta(name);
+      const grams = estimateGramsForIngredient(amount, unit, meta);
+
+      if (meta && Array.isArray(meta.n)) {
+        const per100 = catalogTupleToNutrients(meta.n);
+        return addNutrients(emptyNutrients(), per100, grams / 100);
+      }
+
+      // Jemný orientační průměr pro neznámou surovinu mimo katalog
+      const fallbackPer100 = catalogTupleToNutrients([110, 4.5, 14, 3.5, 2.0, 0.8, 22, 30, 0.6, 200, 5, 0, 0.1, 18, 0.05]);
+      return addNutrients(emptyNutrients(), fallbackPer100, grams / 100);
+    }
+
+    /** Spočítá orientační živiny 1 porce receptu */
+    function calculateRecipeNutrientsPerServing(recipe) {
+      if (recipe.aiNutritionPerServing && typeof recipe.aiNutritionPerServing === 'object') {
+        const out = emptyNutrients();
+        return addNutrients(out, recipe.aiNutritionPerServing, 1);
+      }
+      const total = emptyNutrients();
+      (recipe.ingredients || []).forEach(ing => {
+        const itemNutr = calculateIngredientNutrients(ing.name, ing.amount, ing.unit);
+        addNutrients(total, itemNutr, 1);
+      });
+      const servings = Math.max(1, Number(recipe.servings) || 2);
+      const perServing = emptyNutrients();
+      return addNutrients(perServing, total, 1 / servings);
+    }
+
+    /** Sečte živiny za konkrétní den */
+    function getDayTotals(dateKey) {
+      const entries = (state.foodLog || []).filter(e => e.date === dateKey);
+      const totals = emptyNutrients();
+      entries.forEach(entry => {
+        addNutrients(totals, entry.nutrients, 1);
+      });
+      return { entries, totals };
+    }
+
+    /** 7denní radar mikroživin (průměr za zapsané dny v posledních 7 kalendářních dnech) */
+    function getSevenDayMicroSummary() {
+      const targets = state.nutritionProfile?.targets || getDefaultNutritionProfile().targets;
+      const validDates = new Set();
+      for (let i = 0; i < 7; i++) {
+        validDates.add(getLocalDateKey(-i));
+      }
+
+      const recentEntries = (state.foodLog || []).filter(e => validDates.has(e.date));
+      const activeDaySet = new Set(recentEntries.map(e => e.date));
+      const loggedDaysCount = activeDaySet.size;
+
+      const sum7 = emptyNutrients();
+      recentEntries.forEach(e => addNutrients(sum7, e.nutrients, 1));
+
+      const divisor = Math.max(1, loggedDaysCount);
+      const items = MICRONUTRIENT_META.map(meta => {
+        const target = Math.max(0.1, Number(targets[meta.key]) || meta.defaultFemale);
+        const avgDaily = loggedDaysCount > 0 ? (sum7[meta.key] / divisor) : 0;
+        const pct = loggedDaysCount > 0 ? Math.round((avgDaily / target) * 100) : 0;
+        let status = 'ok';      // 'ok' | 'low' | 'missing'
+        if (loggedDaysCount === 0) status = 'none';
+        else if (pct < 55) status = 'missing';
+        else if (pct < 85) status = 'low';
+
+        return {
+          ...meta,
+          target,
+          avgDaily,
+          pct,
+          status
+        };
+      });
+
+      const lacking = items
+        .filter(it => it.status === 'missing' || it.status === 'low')
+        .sort((a, b) => a.pct - b.pct);
+
+      return {
+        loggedDaysCount,
+        items,
+        lacking
+      };
+    }
+
+    /** Zjistí, zda uživatel výživu reálně aktivoval (zapsal aspoň 1 jídlo nebo uložil cíle) */
+    function isNutritionActive() {
+      return Boolean(state.nutritionProfile?.configured) || (state.foodLog && state.foodLog.length > 0);
+    }
+
+    /* ==========================================================================
+       5. UKÁZKOVÁ DATA PŘI PRVNÍM SPUŠTĚNÍ
        ========================================================================== */
     function getDefaultState() {
       return {
         unificationGroups: getDefaultUnificationGroups(),
+        nutritionProfile: getDefaultNutritionProfile(),
+        foodLog: [],
+        aiFoodCache: {},
 
         pantry: [
           { id: 'pan_1',  name: 'Mražený hrášek',     amount: 300,  unit: 'g',  location: 'mrazak' },
@@ -1511,7 +2261,7 @@
     }
 
     /* ==========================================================================
-       5. STAV APLIKACE A UKLÁDÁNÍ DO LOCALSTORAGE
+       6. STAV APLIKACE A UKLÁDÁNÍ DO LOCALSTORAGE
        ========================================================================== */
     let state = getDefaultState();
     let activeTab = 'shopping';
@@ -1521,6 +2271,16 @@
     let editingRecipeId = null;
     let pickingPlanDay = null;
     let confirmCallback = null;
+
+    // Stav výživového modálu
+    let selectedNutritionDate = getLocalDateKey(0);
+    let selectedNutritionLogMode = 'recipe';
+    let selectedMicroDetailKey = null;
+    let draftGoalMode = 'gain';
+
+    // Stav rychlého modálu „Snědeno“
+    let quickEatRecipeId = null;
+    let quickEatPortion = 1;
 
     function loadState() {
       try {
@@ -1535,6 +2295,15 @@
           unificationGroups: Array.isArray(parsed.unificationGroups) && parsed.unificationGroups.length > 0
             ? parsed.unificationGroups
             : def.unificationGroups,
+          nutritionProfile: parsed.nutritionProfile && typeof parsed.nutritionProfile === 'object'
+            ? {
+                ...def.nutritionProfile,
+                ...parsed.nutritionProfile,
+                targets: { ...def.nutritionProfile.targets, ...(parsed.nutritionProfile.targets || {}) }
+              }
+            : def.nutritionProfile,
+          foodLog: Array.isArray(parsed.foodLog) ? parsed.foodLog : [],
+          aiFoodCache: parsed.aiFoodCache && typeof parsed.aiFoodCache === 'object' ? parsed.aiFoodCache : {},
           pantry: Array.isArray(parsed.pantry) ? parsed.pantry : def.pantry,
           recipes: Array.isArray(parsed.recipes) ? parsed.recipes : def.recipes,
           plan: parsed.plan && typeof parsed.plan === 'object' ? parsed.plan : def.plan,
@@ -1552,12 +2321,12 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch {
-        // Ignorujeme případný limit úložiště v anonymním režimu
+        // Ignorujeme případný limit úložiště
       }
     }
 
     /* ==========================================================================
-       6. SLUČOVÁNÍ POLOŽEK DO NÁKUPU A DOMÁCÍCH ZÁSOB
+       7. SLUČOVÁNÍ POLOŽEK DO NÁKUPU A DOMÁCÍCH ZÁSOB
        ========================================================================== */
     function guessLocationForName(name) {
       const clean = cleanRawPhrase(name);
@@ -1624,8 +2393,38 @@
       });
     }
 
+    /** Odečte použité suroviny receptu ze zásob Doma (pokud si to uživatel zaškrtne při Snědeno) */
+    function deductRecipeIngredientsFromPantry(recipe, portionMultiplier = 1) {
+      const baseServings = Math.max(1, Number(recipe.servings) || 2);
+      const ratio = portionMultiplier / baseServings;
+
+      (recipe.ingredients || []).forEach(ing => {
+        const needed = (Number(ing.amount) || 0) * ratio;
+        if (needed <= 0) return;
+
+        const key = getCanonicalKey(ing.name);
+        const ingInfo = getUnitInfo(ing.unit);
+
+        for (let i = 0; i < state.pantry.length; i++) {
+          const pItem = state.pantry[i];
+          if (getCanonicalKey(pItem.name) !== key) continue;
+          const pInfo = getUnitInfo(pItem.unit);
+          if (pInfo.family !== ingInfo.family) continue;
+
+          const deductInPUnit = (needed * ingInfo.factor) / pInfo.factor;
+          const nextAmt = Math.round((Number(pItem.amount) - deductInPUnit) * 100) / 100;
+          if (nextAmt <= 0) {
+            state.pantry.splice(i, 1);
+          } else {
+            pItem.amount = nextAmt;
+          }
+          break;
+        }
+      });
+    }
+
     /* ==========================================================================
-       7. CHYTRÝ DOTYKOVÝ NAŠEPTÁVAČ SUROVIN
+       8. CHYTRÝ DOTYKOVÝ NAŠEPTÁVAČ SUROVIN
        ========================================================================== */
     let activeAutocompleteInput = null;
     let activeAutocompleteOnSelect = null;
@@ -1717,7 +2516,7 @@
     }
 
     /* ==========================================================================
-       8. PARSER HROMADNÉHO VLOŽENÍ SUROVIN ZE SCHRÁNKY / TEXTU
+       9. PARSER HROMADNÉHO VLOŽENÍ SUROVIN ZE SCHRÁNKY / TEXTU
        ========================================================================== */
     function parseIngredientsText(rawText) {
       const lines = String(rawText || '')
@@ -1775,7 +2574,7 @@
     }
 
     /* ==========================================================================
-       9. SPRÁVA MODÁLŮ A POTVRZOVACÍHO DIALOGU
+       10. SPRÁVA MODÁLŮ A POTVRZOVACÍHO DIALOGU
        ========================================================================== */
     function openModal(id) {
       const el = document.getElementById(id);
@@ -1796,7 +2595,7 @@
     }
 
     /* ==========================================================================
-       10. VYKRESLOVÁNÍ ZÁLOŽEK (NÁKUP, PLÁN, RECEPTY, DOMA)
+       11. VYKRESLOVÁNÍ ZÁLOŽEK (NÁKUP, PLÁN, RECEPTY, DOMA)
        ========================================================================== */
     function populateUnitSelect(selectEl, selected = 'ks') {
       selectEl.innerHTML = UNITS.map(u =>
@@ -1813,6 +2612,12 @@
       } else {
         badge.classList.add('hidden');
       }
+    }
+
+    function updateNutritionHeaderIndicator() {
+      const dot = document.getElementById('nutritionHeaderDot');
+      if (!dot) return;
+      dot.classList.toggle('hidden', !isNutritionActive());
     }
 
     function updateHeader() {
@@ -1849,6 +2654,94 @@
       if (tabName === 'pantry')   renderPantry();
     }
 
+    /** Chytré tipy v Nákupním seznamu (zobrazí se jen při aktivní výživě) */
+    function renderShoppingNutrientTips() {
+      const card = document.getElementById('shoppingNutrientTipsCard');
+      if (!isNutritionActive()) {
+        card.classList.add('hidden');
+        return;
+      }
+
+      const summary = getSevenDayMicroSummary();
+      const todayTotals = getDayTotals(getLocalDateKey(0)).totals;
+      const targets = state.nutritionProfile?.targets || getDefaultNutritionProfile().targets;
+      const goalMode = state.nutritionProfile?.goalMode || 'gain';
+
+      // Sbíráme potřebné živiny (z 7denního radaru + dnešních bílkovin/energie)
+      const neededReasons = new Map(); // foodName -> Set<reasonLabel>
+      const topLacking = summary.lacking.slice(0, 3);
+
+      topLacking.forEach(item => {
+        (item.tipFoods || []).forEach(food => {
+          if (!neededReasons.has(food)) neededReasons.set(food, new Set());
+          neededReasons.get(food).add(item.label.toLowerCase());
+        });
+      });
+
+      if (todayTotals.protein < targets.protein * 0.85) {
+        ['Tvaroh', 'Řecký jogurt', 'Kuřecí prsa', 'Vejce', 'Losos', 'Červená čočka'].forEach(food => {
+          if (!neededReasons.has(food)) neededReasons.set(food, new Set());
+          neededReasons.get(food).add('bílkoviny');
+        });
+      }
+
+      if (goalMode === 'gain' && todayTotals.kcal < targets.kcal * 0.85) {
+        ['Arašídové máslo', 'Dýňová semínka', 'Avokádo', 'Vlašské ořechy', 'Ovesné vločky'].forEach(food => {
+          if (!neededReasons.has(food)) neededReasons.set(food, new Set());
+          neededReasons.get(food).add('kcal');
+        });
+      }
+
+      const pantryKeys = new Set(state.pantry.filter(p => Number(p.amount) > 0).map(p => getCanonicalKey(p.name)));
+      const shopKeys = new Set(state.shoppingList.filter(s => !s.checked).map(s => getCanonicalKey(s.name)));
+
+      const candidates = [];
+      neededReasons.forEach((reasonsSet, foodName) => {
+        const key = getCanonicalKey(foodName);
+        if (pantryKeys.has(key) || shopKeys.has(key)) return;
+        const meta = findCatalogNutritionMeta(foodName);
+        const kcalPer100 = meta?.n?.[0] || 100;
+        const protPer100 = meta?.n?.[1] || 5;
+        // Při nabírání upřednostníme potraviny s vyšší energií a bílkovinami
+        const score = reasonsSet.size * 100 + (goalMode === 'gain' ? (kcalPer100 * 0.12 + protPer100 * 2) : protPer100 * 2);
+        candidates.push({
+          foodName,
+          reasons: Array.from(reasonsSet).slice(0, 2).join(', '),
+          score,
+          defaultUnit: meta?.unit || 'g',
+          defaultAmount: meta?.unit === 'ks' ? 2 : meta?.unit === 'plechovka' ? 1 : 200
+        });
+      });
+
+      candidates.sort((a, b) => b.score - a.score);
+      const topChips = candidates.slice(0, 5);
+
+      if (topChips.length === 0) {
+        card.classList.add('hidden');
+        return;
+      }
+
+      const lackingHeadline = topLacking.length > 0
+        ? `Doplní hlavně: ${topLacking.map(l => l.label.toLowerCase()).join(', ')}`
+        : 'Potraviny pro splnění dnešních bílkovin a energie';
+
+      document.getElementById('shoppingNutrientTipsSummary').textContent = lackingHeadline;
+      document.getElementById('shoppingNutrientTipsChips').innerHTML = topChips.map(c => `
+        <button
+          type="button"
+          data-tip-food="${escapeHtml(c.foodName)}"
+          data-tip-amount="${c.defaultAmount}"
+          data-tip-unit="${escapeHtml(c.defaultUnit)}"
+          class="px-3 py-1.5 rounded-full bg-sage-bg hover:bg-sage-tint border border-sage-border text-xs font-medium text-sage-ink active:scale-95 transition text-left"
+        >
+          <span class="font-semibold text-sage-dark">+ ${escapeHtml(c.foodName)}</span>
+          <span class="text-sage-muted"> • ${escapeHtml(c.reasons)}</span>
+        </button>
+      `).join('');
+
+      card.classList.remove('hidden');
+    }
+
     /* --- ZÁLOŽKA 1: NÁKUP --- */
     function renderShopping() {
       const toBuy = state.shoppingList.filter(i => !i.checked);
@@ -1858,6 +2751,8 @@
       document.getElementById('shoppingProgressText').textContent = `${checked.length} / ${total} v košíku`;
       const pct = total > 0 ? Math.round((checked.length / total) * 100) : 0;
       document.getElementById('shoppingProgressBar').style.width = `${pct}%`;
+
+      renderShoppingNutrientTips();
 
       document.getElementById('shoppingToBuyCount').textContent = String(toBuy.length);
       document.getElementById('shoppingCheckedCount').textContent = String(checked.length);
@@ -1914,22 +2809,37 @@
           const rec = state.recipes.find(r => r.id === entry.recipeId);
           if (!rec) return '';
           const ev = evaluateRecipe(rec);
+          const perServing = calculateRecipeNutrientsPerServing(rec);
           return `
             <div class="flex items-center justify-between gap-2 bg-sage-bg rounded-xl px-3 py-2 border border-sage-border/80">
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <div class="text-sm font-medium text-sage-ink truncate">${escapeHtml(rec.name)}</div>
-                <div class="text-[11px] ${ev.canCook ? 'text-sage-dark font-semibold' : 'text-ochre'}">
-                  ${ev.canCook ? '✓ Máš vše doma' : `Máš ${ev.haveCount} z ${ev.totalCount} surovin`}
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] mt-0.5">
+                  <span class="${ev.canCook ? 'text-sage-dark font-semibold' : 'text-ochre'}">
+                    ${ev.canCook ? '✓ Máš vše doma' : `Máš ${ev.haveCount} z ${ev.totalCount} surovin`}
+                  </span>
+                  <span class="text-sage-muted">• ~${formatInt(perServing.kcal)} kcal, ${Math.round(perServing.protein)} g B</span>
                 </div>
               </div>
-              <button
-                type="button"
-                data-action="remove-plan-entry"
-                data-day="${dayIdx}"
-                data-entry="${escapeHtml(entry.id)}"
-                aria-label="Odebrat jídlo"
-                class="w-8 h-8 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center transition shrink-0"
-              >✕</button>
+              <div class="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  data-action="quick-eat-recipe"
+                  data-recipe-id="${escapeHtml(rec.id)}"
+                  title="Zapsat jako snědené do dnešní výživy"
+                  class="px-2.5 py-1 rounded-lg bg-white hover:bg-sage-tint border border-sage-border text-[11px] font-semibold text-sage-dark transition"
+                >
+                  ✓ Snědeno
+                </button>
+                <button
+                  type="button"
+                  data-action="remove-plan-entry"
+                  data-day="${dayIdx}"
+                  data-entry="${escapeHtml(entry.id)}"
+                  aria-label="Odebrat jídlo"
+                  class="w-7 h-7 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center transition"
+                >✕</button>
+              </div>
             </div>
           `;
         }).filter(Boolean).join('');
@@ -2038,7 +2948,8 @@
 
       const evaluated = state.recipes.map(recipe => ({
         recipe,
-        evalRes: evaluateRecipe(recipe)
+        evalRes: evaluateRecipe(recipe),
+        perServing: calculateRecipeNutrientsPerServing(recipe)
       }));
 
       const filtered = evaluated.filter(({ recipe, evalRes }) => {
@@ -2065,7 +2976,7 @@
         return;
       }
 
-      container.innerHTML = filtered.map(({ recipe, evalRes }) => {
+      container.innerHTML = filtered.map(({ recipe, evalRes, perServing }) => {
         const { canCook, haveCount, totalCount, details } = evalRes;
         const isOpen = openRecipeIds.has(recipe.id);
         const missingOrPartialCount = details.filter(d => d.match.status !== 'have').length;
@@ -2137,7 +3048,8 @@
         const stepsList = Array.isArray(recipe.steps) && recipe.steps.length > 0 ? recipe.steps : [];
         const metaPills = [
           recipe.prepTime ? `⏱ ${escapeHtml(recipe.prepTime)}` : '',
-          recipe.servings ? `🍽 ${escapeHtml(recipe.servings)} porce` : ''
+          recipe.servings ? `🍽 ${escapeHtml(recipe.servings)} porce` : '',
+          `~${formatInt(perServing.kcal)} kcal / porce (${Math.round(perServing.protein)} g B)`
         ].filter(Boolean);
 
         return `
@@ -2149,7 +3061,6 @@
                   ${!isOpen && recipe.note ? `<p class="text-xs text-sage-muted mt-1 truncate">${escapeHtml(recipe.note)}</p>` : ''}
                   <div class="flex flex-wrap items-center gap-2 mt-2">
                     ${statusBadge}
-                    <span class="text-xs text-sage-muted">${recipe.ingredients.length} surovin</span>
                     ${metaPills.map(m => `<span class="text-xs text-sage-muted">${m}</span>`).join('')}
                   </div>
                 </div>
@@ -2177,7 +3088,7 @@
                     </ol>
                   </div>
                 ` : ''}
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                   <button
                     type="button"
                     data-action="add-missing-from-recipe"
@@ -2193,9 +3104,17 @@
                   </button>
                   <button
                     type="button"
+                    data-action="quick-eat-recipe"
+                    data-recipe-id="${escapeHtml(recipe.id)}"
+                    class="h-[42px] px-3 rounded-xl bg-sage-tint hover:bg-sage text-sage-dark hover:text-white border border-sage-soft text-xs font-semibold transition"
+                  >
+                    ✓ Snědeno
+                  </button>
+                  <button
+                    type="button"
                     data-action="edit-recipe"
                     data-id="${escapeHtml(recipe.id)}"
-                    class="h-[42px] px-3.5 rounded-xl bg-sage-bg hover:bg-sage-tint border border-sage-border text-sage-ink text-xs font-semibold transition"
+                    class="h-[42px] px-3 rounded-xl bg-sage-bg hover:bg-sage-tint border border-sage-border text-sage-ink text-xs font-semibold transition"
                   >
                     Upravit
                   </button>
@@ -2457,15 +3376,272 @@
     }
 
     /* ==========================================================================
-       11. INICIALIZACE APLIKACE A NAPOJENÍ UDÁLOSTÍ
+       12. VYKRESLOVÁNÍ VÝŽIVOVÉHO PŘEHLEDU, PROFILU CÍLŮ A „SNĚDENO“
+       ========================================================================== */
+    const GOAL_MODE_LABELS = {
+      gain:     'Zdravé nabírání',
+      maintain: 'Vyváženost & udržování',
+      lose:     'Lehká redukce'
+    };
+
+    function renderNutritionModal() {
+      const profile = state.nutritionProfile || getDefaultNutritionProfile();
+      const targets = profile.targets;
+      const goalMode = profile.goalMode || 'gain';
+
+      document.getElementById('nutritionGoalModeSubtitle').textContent =
+        `Režim: ${GOAL_MODE_LABELS[goalMode] || 'Zdravé nabírání'} • cíl ${formatInt(targets.kcal)} kcal, ${targets.protein} g bílkovin`;
+
+      // Datum
+      const dateInfo = formatDateCzech(selectedNutritionDate);
+      document.getElementById('nutrSelectedDateLabel').textContent = dateInfo.title;
+      document.getElementById('nutrSelectedDateSub').textContent = dateInfo.sub;
+      document.getElementById('nutrNextDayBtn').disabled = selectedNutritionDate >= getLocalDateKey(0);
+
+      // Součty dne
+      const { entries, totals } = getDayTotals(selectedNutritionDate);
+
+      // Energie
+      const kcalDone = Math.round(totals.kcal);
+      const kcalTarget = Math.max(100, Math.round(targets.kcal));
+      const kcalPct = Math.min(100, Math.round((kcalDone / kcalTarget) * 100));
+      const kcalDiff = kcalTarget - kcalDone;
+
+      document.getElementById('nutrKcalNumbers').textContent = `${formatInt(kcalDone)} / ${formatInt(kcalTarget)} kcal`;
+      document.getElementById('nutrKcalBar').style.width = `${kcalPct}%`;
+
+      if (goalMode === 'gain') {
+        if (kcalDiff > 60) {
+          document.getElementById('nutrKcalHint').textContent = `Zbývá cca ${formatInt(kcalDiff)} kcal do denního cíle.`;
+          document.getElementById('nutrKcalHint').className = 'text-xs text-sage-muted mt-1';
+        } else {
+          document.getElementById('nutrKcalHint').textContent = '✓ Denní energetický cíl je krásně splněný!';
+          document.getElementById('nutrKcalHint').className = 'text-xs text-sage-dark font-semibold mt-1';
+        }
+      } else if (goalMode === 'lose') {
+        if (kcalDiff >= 0) {
+          document.getElementById('nutrKcalHint').textContent = `Zbývá cca ${formatInt(kcalDiff)} kcal do denního limitu.`;
+          document.getElementById('nutrKcalHint').className = 'text-xs text-sage-muted mt-1';
+        } else {
+          document.getElementById('nutrKcalHint').textContent = `Lehce nad limitem (+${formatInt(Math.abs(kcalDiff))} kcal).`;
+          document.getElementById('nutrKcalHint').className = 'text-xs text-ochre font-medium mt-1';
+        }
+      } else {
+        document.getElementById('nutrKcalHint').textContent = kcalDiff > 60
+          ? `Zbývá cca ${formatInt(kcalDiff)} kcal do denního cíle.`
+          : '✓ Vyvážený energetický příjem splněn.';
+        document.getElementById('nutrKcalHint').className = 'text-xs text-sage-muted mt-1';
+      }
+
+      // Bílkoviny
+      const protDone = Math.round(totals.protein);
+      const protTarget = Math.max(10, Math.round(targets.protein));
+      const protPct = Math.min(100, Math.round((protDone / protTarget) * 100));
+      const protDiff = protTarget - protDone;
+
+      document.getElementById('nutrProteinNumbers').textContent = `${protDone} / ${protTarget} g`;
+      document.getElementById('nutrProteinBar').style.width = `${protPct}%`;
+      if (protDiff > 3) {
+        document.getElementById('nutrProteinHint').textContent = `Zbývá cca ${protDiff} g bílkovin do cíle.`;
+        document.getElementById('nutrProteinHint').className = 'text-xs text-sage-muted mt-1';
+      } else {
+        document.getElementById('nutrProteinHint').textContent = '✓ Cíl bílkovin je dnes splněný!';
+        document.getElementById('nutrProteinHint').className = 'text-xs text-sage-dark font-semibold mt-1';
+      }
+
+      // Ostatní makra
+      document.getElementById('nutrCarbsText').textContent = `${Math.round(totals.carbs)} / ${Math.round(targets.carbs)} g`;
+      document.getElementById('nutrFatText').textContent   = `${Math.round(totals.fat)} / ${Math.round(targets.fat)} g`;
+      document.getElementById('nutrFiberText').textContent = `${Math.round(totals.fiber)} / ${Math.round(targets.fiber)} g`;
+
+      // Naplnění selectu receptů v zapisovači
+      const recSel = document.getElementById('nutrRecipeSelect');
+      recSel.innerHTML = state.recipes.map(r => {
+        const ps = calculateRecipeNutrientsPerServing(r);
+        return `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)} (~${formatInt(ps.kcal)} kcal)</option>`;
+      }).join('');
+
+      // 7denní radar mikroživin
+      const radar = getSevenDayMicroSummary();
+      document.getElementById('nutrRadarSubtitle').textContent = radar.loggedDaysCount > 0
+        ? `Průměr za posledních 7 dní (z ${radar.loggedDaysCount} ${radar.loggedDaysCount === 1 ? 'zapsaného dne' : radar.loggedDaysCount < 5 ? 'zapsaných dnů' : 'zapsaných dnů'}) — klepni pro tipy.`
+        : 'Zapiš první jídlo a ukáže se ti 7denní přehled 10 vitamínů a minerálů.';
+
+      document.getElementById('nutrMicroGrid').innerHTML = radar.items.map(it => {
+        let pillHtml = '';
+        let cardBorder = 'border-sage-border';
+        if (it.status === 'none') {
+          pillHtml = `<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-sage-bg text-sage-muted">Zatím bez dat</span>`;
+        } else if (it.status === 'ok') {
+          pillHtml = `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sage-tint text-sage-dark">✓ V pohodě (${it.pct}%)</span>`;
+          cardBorder = 'border-sage-soft';
+        } else if (it.status === 'low') {
+          pillHtml = `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-ochre-bg text-ochre border border-ochre-border">◐ Lehce přidat (${it.pct}%)</span>`;
+          cardBorder = 'border-ochre-border';
+        } else {
+          pillHtml = `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-ochre-bg text-ochre border border-ochre-border">○ Chybí (${it.pct}%)</span>`;
+          cardBorder = 'border-ochre-border';
+        }
+
+        const isSelected = selectedMicroDetailKey === it.key;
+        return `
+          <button
+            type="button"
+            data-micro-key="${escapeHtml(it.key)}"
+            class="text-left p-2.5 rounded-2xl bg-sage-bg/70 hover:bg-sage-tint/50 border ${isSelected ? 'ring-2 ring-sage border-sage' : cardBorder} transition"
+          >
+            <div class="text-xs font-bold text-sage-ink truncate">${escapeHtml(it.label)}</div>
+            <div class="text-[11px] text-sage-muted mt-0.5">
+              ${formatAmount(it.avgDaily)} / ${formatAmount(it.target)} ${escapeHtml(it.unit)}
+            </div>
+            <div class="mt-1.5">${pillHtml}</div>
+          </button>
+        `;
+      }).join('');
+
+      // Detail vybrané mikroživiny
+      const detailBox = document.getElementById('nutrMicroDetailBox');
+      const activeMicro = radar.items.find(i => i.key === selectedMicroDetailKey);
+      if (activeMicro) {
+        document.getElementById('nutrMicroDetailTitle').textContent =
+          `${activeMicro.label} — průměr ${formatAmount(activeMicro.avgDaily)} z ${formatAmount(activeMicro.target)} ${activeMicro.unit}`;
+        document.getElementById('nutrMicroDetailSources').textContent = `Bohaté zdroje: ${activeMicro.sources}`;
+        document.getElementById('nutrMicroDetailChips').innerHTML = (activeMicro.tipFoods || []).map(food => `
+          <button
+            type="button"
+            data-micro-add-shop="${escapeHtml(food)}"
+            class="px-2.5 py-1 rounded-full bg-white hover:bg-sage-tint border border-sage-border text-[11px] font-semibold text-sage-dark transition"
+          >
+            + ${escapeHtml(food)} do nákupu
+          </button>
+        `).join('');
+        detailBox.classList.remove('hidden');
+      } else {
+        detailBox.classList.add('hidden');
+      }
+
+      // Deník dne
+      document.getElementById('nutrDayEntriesCount').textContent = `${entries.length} ${entries.length === 1 ? 'položka' : entries.length < 5 ? 'položky' : 'položek'}`;
+      const entriesContainer = document.getElementById('nutrDayEntriesList');
+      if (entries.length === 0) {
+        entriesContainer.innerHTML = `<p class="text-xs text-sage-muted/80 italic py-2 text-center">Pro tento den zatím nemáš zapsané žádné jídlo.</p>`;
+      } else {
+        entriesContainer.innerHTML = entries.map(en => `
+          <div class="flex items-center justify-between gap-2 bg-sage-bg rounded-xl px-3 py-2.5 border border-sage-border/70">
+            <div class="min-w-0">
+              <div class="text-xs sm:text-sm font-semibold text-sage-ink truncate">${escapeHtml(en.name)}</div>
+              <div class="text-[11px] text-sage-muted mt-0.5">
+                ${en.subtitle ? `${escapeHtml(en.subtitle)} • ` : ''}${formatInt(en.nutrients?.kcal)} kcal • ${Math.round(en.nutrients?.protein || 0)} g bílkovin
+              </div>
+            </div>
+            <button
+              type="button"
+              data-delete-food-entry="${escapeHtml(en.id)}"
+              aria-label="Smazat záznam"
+              class="w-8 h-8 rounded-lg text-sage-muted hover:text-danger hover:bg-danger-bg flex items-center justify-center shrink-0 transition"
+            >✕</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function openNutritionModal() {
+      selectedNutritionDate = getLocalDateKey(0);
+      renderNutritionModal();
+      openModal('nutritionModal');
+    }
+
+    function syncProfileGoalButtonsUI() {
+      document.querySelectorAll('.prof-goal-btn').forEach(btn => {
+        const active = btn.dataset.goalMode === draftGoalMode;
+        btn.className = `prof-goal-btn py-2 px-2 rounded-lg text-xs transition leading-tight ${
+          active ? 'bg-white text-sage-ink font-semibold shadow-sm' : 'text-sage-muted font-medium'
+        }`;
+      });
+    }
+
+    function fillProfileFormFromTargets(targets) {
+      document.getElementById('targetKcalInput').value    = Math.round(targets.kcal || 2500);
+      document.getElementById('targetProteinInput').value = Math.round(targets.protein || 120);
+      document.getElementById('targetCarbsInput').value   = Math.round(targets.carbs || 310);
+      document.getElementById('targetFatInput').value     = Math.round(targets.fat || 80);
+      document.getElementById('targetFiberInput').value   = Math.round(targets.fiber || 30);
+
+      const microGrid = document.getElementById('microTargetsInputsGrid');
+      microGrid.innerHTML = MICRONUTRIENT_META.map(m => `
+        <div>
+          <label for="microTarget_${m.key}" class="block text-[11px] text-sage-muted mb-0.5">${escapeHtml(m.label)} (${escapeHtml(m.unit)})</label>
+          <input
+            type="number"
+            id="microTarget_${m.key}"
+            data-micro-target-key="${m.key}"
+            step="any"
+            min="0.1"
+            value="${escapeHtml(targets[m.key] ?? m.defaultFemale)}"
+            class="w-full h-9 px-2.5 rounded-xl bg-white border border-sage-border text-xs text-sage-ink"
+          >
+        </div>
+      `).join('');
+    }
+
+    function openNutritionProfileModal() {
+      const p = state.nutritionProfile || getDefaultNutritionProfile();
+      draftGoalMode = p.goalMode || 'gain';
+      syncProfileGoalButtonsUI();
+
+      document.getElementById('profSexSelect').value      = p.sex || 'female';
+      document.getElementById('profAgeInput').value       = p.age || 25;
+      document.getElementById('profWeightInput').value    = p.weight || 60;
+      document.getElementById('profHeightInput').value    = p.height || 168;
+      document.getElementById('profActivitySelect').value = String(p.activity || 1.6);
+
+      fillProfileFormFromTargets(p.targets || getDefaultNutritionProfile().targets);
+      openModal('nutritionProfileModal');
+    }
+
+    /** Otevře rychlé potvrzení „✓ Snědeno“ pro konkrétní recept */
+    function openQuickEatModal(recipeId) {
+      const rec = state.recipes.find(r => r.id === recipeId);
+      if (!rec) return;
+      quickEatRecipeId = rec.id;
+      quickEatPortion = 1;
+
+      document.getElementById('quickEatRecipeTitle').textContent = rec.name;
+      document.getElementById('quickEatDeductPantryCheckbox').checked = false;
+      updateQuickEatPreview();
+      openModal('quickEatModal');
+    }
+
+    function updateQuickEatPreview() {
+      const rec = state.recipes.find(r => r.id === quickEatRecipeId);
+      if (!rec) return;
+      const perServing = calculateRecipeNutrientsPerServing(rec);
+      const scaled = addNutrients(emptyNutrients(), perServing, quickEatPortion);
+
+      document.getElementById('quickEatNutritionPreview').textContent =
+        `Orientačně: ~${formatInt(scaled.kcal)} kcal • ${Math.round(scaled.protein)} g bílkovin • ${Math.round(scaled.carbs)} g S • ${Math.round(scaled.fat)} g T`;
+
+      document.querySelectorAll('.quick-eat-portion-btn').forEach(btn => {
+        const active = Number(btn.dataset.eatPortion) === quickEatPortion;
+        btn.className = `quick-eat-portion-btn h-10 rounded-xl text-xs font-semibold transition ${
+          active
+            ? 'bg-sage text-white shadow-sm'
+            : 'bg-sage-bg border border-sage-border text-sage-ink hover:bg-sage-tint/50'
+        }`;
+      });
+    }
+
+    /* ==========================================================================
+       13. INICIALIZACE APLIKACE A NAPOJENÍ UDÁLOSTÍ
        ========================================================================== */
     function initApp() {
       loadState();
       populateUnitSelect(document.getElementById('shoppingUnitSelect'), 'ks');
       populateUnitSelect(document.getElementById('pantryUnitSelect'), 'g');
+      populateUnitSelect(document.getElementById('nutrIngUnitSelect'), 'g');
       renderQuickStaples();
 
-      // Našeptávač pro nákup a zásoby doma
+      // Našeptávače surovin
       attachAutocomplete(document.getElementById('shoppingNameInput'), (sel) => {
         document.getElementById('shoppingNameInput').value = sel.name;
         if (UNITS.includes(sel.unit)) document.getElementById('shoppingUnitSelect').value = sel.unit;
@@ -2474,6 +3650,11 @@
         document.getElementById('pantryNameInput').value = sel.name;
         if (UNITS.includes(sel.unit)) document.getElementById('pantryUnitSelect').value = sel.unit;
         if (sel.location) document.getElementById('pantryLocationSelect').value = sel.location;
+      });
+      attachAutocomplete(document.getElementById('nutrIngNameInput'), (sel) => {
+        document.getElementById('nutrIngNameInput').value = sel.name;
+        if (UNITS.includes(sel.unit)) document.getElementById('nutrIngUnitSelect').value = sel.unit;
+        document.getElementById('nutrIngAmountInput').value = sel.unit === 'ks' ? '1' : '150';
       });
 
       // Kliknutí na položku v našeptávači
@@ -2503,7 +3684,7 @@
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
       });
 
-      // Zavírání modálů křížkem i kliknutím mimo okno
+      // Zavírání modálů
       document.querySelectorAll('[data-close-modal]').forEach(btn => {
         btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
       });
@@ -2517,12 +3698,13 @@
       document.getElementById('resetDemoBtn').addEventListener('click', () => {
         askConfirm(
           'Obnovit ukázková data?',
-          'Tvoje aktuální nákupy, plán i zásoby doma se nahradí výchozí ukázkou (API klíč zůstane zachován).',
+          'Tvoje aktuální nákupy, plán, zásoby i deník výživy se nahradí výchozí ukázkou (API klíč zůstane zachován).',
           () => {
             state = getDefaultState();
             saveState();
             openRecipeIds.clear();
             openRecipeIds.add('rec_1');
+            updateNutritionHeaderIndicator();
             switchTab(activeTab);
             showToast('Ukázková data byla obnovena.');
           }
@@ -2530,6 +3712,23 @@
       });
 
       // --- UDÁLOSTI: NÁKUP ---
+      document.getElementById('toggleShoppingNutrientTipsBtn').addEventListener('click', () => {
+        document.getElementById('shoppingNutrientTipsBody').classList.toggle('hidden');
+        document.getElementById('shoppingNutrientTipsArrow').classList.toggle('rotate-180');
+      });
+
+      document.getElementById('shoppingNutrientTipsChips').addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-tip-food]');
+        if (!chip) return;
+        const food = chip.dataset.tipFood;
+        const amount = Number(chip.dataset.tipAmount) || 200;
+        const unit = chip.dataset.tipUnit || 'g';
+        addOrMergeShoppingItem(food, amount, unit);
+        saveState();
+        renderShopping();
+        showToast(`Přidáno do nákupu: ${food}`);
+      });
+
       document.getElementById('shoppingForm').addEventListener('submit', (e) => {
         e.preventDefault();
         closeAutocomplete();
@@ -2602,6 +3801,8 @@
         const dayIdx = Number(btn.dataset.day);
         if (btn.dataset.action === 'open-plan-picker') {
           openPlanPickerModal(dayIdx);
+        } else if (btn.dataset.action === 'quick-eat-recipe') {
+          openQuickEatModal(btn.dataset.recipeId);
         } else if (btn.dataset.action === 'remove-plan-entry') {
           const entryId = btn.dataset.entry;
           state.plan[dayIdx] = (state.plan[dayIdx] || []).filter(en => en.id !== entryId);
@@ -2660,7 +3861,7 @@
         const note = document.getElementById('recipeNoteInput').value.trim();
         const prepTime = document.getElementById('recipePrepTimeInput').value.trim();
         const servingsRaw = Number(document.getElementById('recipeServingsInput').value);
-        const servings = servingsRaw > 0 ? servingsRaw : null;
+        const servings = servingsRaw > 0 ? servingsRaw : 2;
         const steps = document.getElementById('recipeStepsInput').value
           .split(/\r?\n/)
           .map(s => s.replace(/^\d+[.)]\s*/, '').trim())
@@ -2690,6 +3891,7 @@
             existing.servings = servings;
             existing.steps = steps;
             existing.ingredients = ingredients;
+            delete existing.aiNutritionPerServing;
           }
           showToast(`Recept „${name}“ byl upraven.`);
         } else {
@@ -2708,6 +3910,12 @@
       document.getElementById('recipesList').addEventListener('click', (e) => {
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) return;
+
+        if (actionEl.dataset.action === 'quick-eat-recipe') {
+          openQuickEatModal(actionEl.dataset.recipeId);
+          return;
+        }
+
         const id = actionEl.dataset.id;
         const recipe = state.recipes.find(r => r.id === id);
         if (!recipe) return;
@@ -2894,7 +4102,285 @@
       });
 
       /* ======================================================================
-         12. NASTAVENÍ AI A AI KUCHAŘ (AKTUÁLNÍ GEMINI MODELY + AUTO-FALLBACK)
+         14. UDÁLOSTI PRO VÝŽIVOVÝ PŘEHLED, PROFIL CÍLŮ, „SNĚDENO“ A ZÁLOHU DAT
+         ====================================================================== */
+      document.getElementById('openNutritionBtn').addEventListener('click', openNutritionModal);
+      document.getElementById('openNutritionProfileBtn').addEventListener('click', openNutritionProfileModal);
+
+      document.getElementById('nutrPrevDayBtn').addEventListener('click', () => {
+        const [y, m, d] = selectedNutritionDate.split('-').map(Number);
+        const dt = new Date(y, m - 1, d);
+        dt.setDate(dt.getDate() - 1);
+        selectedNutritionDate = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        renderNutritionModal();
+      });
+
+      document.getElementById('nutrNextDayBtn').addEventListener('click', () => {
+        if (selectedNutritionDate >= getLocalDateKey(0)) return;
+        const [y, m, d] = selectedNutritionDate.split('-').map(Number);
+        const dt = new Date(y, m - 1, d);
+        dt.setDate(dt.getDate() + 1);
+        selectedNutritionDate = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        renderNutritionModal();
+      });
+
+      // Přepínač 3 způsobů zápisu jídla
+      document.querySelectorAll('.nutr-log-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedNutritionLogMode = btn.dataset.logMode;
+          document.querySelectorAll('.nutr-log-tab').forEach(b => {
+            const active = b.dataset.logMode === selectedNutritionLogMode;
+            b.className = `nutr-log-tab py-2 px-2 rounded-lg text-xs transition ${
+              active ? 'bg-white text-sage-ink font-semibold shadow-sm' : 'text-sage-muted font-medium'
+            }`;
+          });
+          document.getElementById('logPanel-recipe').classList.toggle('hidden', selectedNutritionLogMode !== 'recipe');
+          document.getElementById('logPanel-ai').classList.toggle('hidden', selectedNutritionLogMode !== 'ai');
+          document.getElementById('logPanel-ingredient').classList.toggle('hidden', selectedNutritionLogMode !== 'ingredient');
+        });
+      });
+
+      // Zápis z receptu uvnitř modálu Výživy
+      document.getElementById('logFromRecipeBtn').addEventListener('click', () => {
+        const recId = document.getElementById('nutrRecipeSelect').value;
+        const portion = Number(document.getElementById('nutrRecipePortionSelect').value) || 1;
+        const rec = state.recipes.find(r => r.id === recId);
+        if (!rec) return;
+
+        const perServing = calculateRecipeNutrientsPerServing(rec);
+        const scaled = addNutrients(emptyNutrients(), perServing, portion);
+
+        state.foodLog.unshift({
+          id: uid('fl'),
+          date: selectedNutritionDate,
+          name: rec.name,
+          subtitle: `${formatAmount(portion)} porce`,
+          nutrients: scaled
+        });
+        saveState();
+        updateNutritionHeaderIndicator();
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        showToast(`Zapsáno: ${rec.name} (~${formatInt(scaled.kcal)} kcal)`);
+      });
+
+      // Zápis jedné suroviny (100% offline z katalogu)
+      document.getElementById('logSingleIngredientForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        closeAutocomplete();
+        const nameInput = document.getElementById('nutrIngNameInput');
+        const amountInput = document.getElementById('nutrIngAmountInput');
+        const unitSelect = document.getElementById('nutrIngUnitSelect');
+
+        const name = capitalizeFirst(nameInput.value.trim());
+        const amount = Number(amountInput.value) || 1;
+        const unit = unitSelect.value;
+        if (!name || amount <= 0) return;
+
+        const nutrients = calculateIngredientNutrients(name, amount, unit);
+        state.foodLog.unshift({
+          id: uid('fl'),
+          date: selectedNutritionDate,
+          name,
+          subtitle: `${formatAmount(amount)} ${unit}`,
+          nutrients
+        });
+        nameInput.value = '';
+        saveState();
+        updateNutritionHeaderIndicator();
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        showToast(`Zapsáno: ${name} (~${formatInt(nutrients.kcal)} kcal)`);
+      });
+
+      // Detail mikroživiny po klepnutí v 7denním radaru
+      document.getElementById('nutrMicroGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-micro-key]');
+        if (!btn) return;
+        const key = btn.dataset.microKey;
+        selectedMicroDetailKey = selectedMicroDetailKey === key ? null : key;
+        renderNutritionModal();
+      });
+
+      document.getElementById('closeNutrMicroDetailBtn').addEventListener('click', () => {
+        selectedMicroDetailKey = null;
+        renderNutritionModal();
+      });
+
+      document.getElementById('nutrMicroDetailChips').addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-micro-add-shop]');
+        if (!chip) return;
+        const food = chip.dataset.microAddShop;
+        const meta = findCatalogNutritionMeta(food);
+        const unit = meta?.unit || 'g';
+        const amt = unit === 'ks' ? 2 : unit === 'plechovka' ? 1 : 200;
+        addOrMergeShoppingItem(food, amt, unit);
+        saveState();
+        updateShoppingBadge();
+        if (activeTab === 'shopping') renderShopping();
+        showToast(`Přidáno do nákupu: ${food}`);
+      });
+
+      // Smazání záznamu z deníku dne
+      document.getElementById('nutrDayEntriesList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-delete-food-entry]');
+        if (!btn) return;
+        state.foodLog = state.foodLog.filter(en => en.id !== btn.dataset.deleteFoodEntry);
+        saveState();
+        updateNutritionHeaderIndicator();
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+      });
+
+      // Rychlý modál „✓ Snědeno“ (z Plánu nebo Receptů)
+      document.querySelectorAll('.quick-eat-portion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          quickEatPortion = Number(btn.dataset.eatPortion) || 1;
+          updateQuickEatPreview();
+        });
+      });
+
+      document.getElementById('confirmQuickEatBtn').addEventListener('click', () => {
+        const rec = state.recipes.find(r => r.id === quickEatRecipeId);
+        if (!rec) return;
+
+        const perServing = calculateRecipeNutrientsPerServing(rec);
+        const scaled = addNutrients(emptyNutrients(), perServing, quickEatPortion);
+
+        state.foodLog.unshift({
+          id: uid('fl'),
+          date: getLocalDateKey(0),
+          name: rec.name,
+          subtitle: `${formatAmount(quickEatPortion)} porce`,
+          nutrients: scaled
+        });
+
+        if (document.getElementById('quickEatDeductPantryCheckbox').checked) {
+          deductRecipeIngredientsFromPantry(rec, quickEatPortion);
+          if (activeTab === 'pantry') renderPantry();
+          if (activeTab === 'recipes') renderRecipes();
+          if (activeTab === 'plan') renderPlan();
+        }
+
+        saveState();
+        updateNutritionHeaderIndicator();
+        if (activeTab === 'shopping') renderShopping();
+        closeModal('quickEatModal');
+        showToast(`Snědeno zapsáno: ${rec.name} (~${formatInt(scaled.kcal)} kcal, ${Math.round(scaled.protein)} g B)`);
+      });
+
+      // Události: Osobní profil a cíle výživy
+      document.querySelectorAll('.prof-goal-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          draftGoalMode = btn.dataset.goalMode;
+          syncProfileGoalButtonsUI();
+        });
+      });
+
+      document.getElementById('calculateRecommendedTargetsBtn').addEventListener('click', () => {
+        const calc = computeRecommendedProfileTargets({
+          goalMode: draftGoalMode,
+          sex: document.getElementById('profSexSelect').value,
+          age: document.getElementById('profAgeInput').value,
+          weight: document.getElementById('profWeightInput').value,
+          height: document.getElementById('profHeightInput').value,
+          activity: document.getElementById('profActivitySelect').value
+        });
+        fillProfileFormFromTargets(calc);
+        showToast(`Vypočítáno: ${formatInt(calc.kcal)} kcal a ${calc.protein} g bílkovin denně.`);
+      });
+
+      document.getElementById('preset2500GainBtn').addEventListener('click', () => {
+        draftGoalMode = 'gain';
+        syncProfileGoalButtonsUI();
+        const defTargets = getDefaultNutritionProfile().targets;
+        fillProfileFormFromTargets(defTargets);
+        showToast('Nastavena předvolba: zdravé nabírání 2 500 kcal.');
+      });
+
+      document.getElementById('nutritionProfileForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const targets = {
+          kcal:      Math.max(1000, Number(document.getElementById('targetKcalInput').value) || 2500),
+          protein:   Math.max(30, Number(document.getElementById('targetProteinInput').value) || 120),
+          carbs:     Math.max(30, Number(document.getElementById('targetCarbsInput').value) || 310),
+          fat:       Math.max(20, Number(document.getElementById('targetFatInput').value) || 80),
+          fiber:     Math.max(10, Number(document.getElementById('targetFiberInput').value) || 30)
+        };
+
+        document.querySelectorAll('[data-micro-target-key]').forEach(inp => {
+          const k = inp.dataset.microTargetKey;
+          const val = Number(inp.value);
+          if (k && val > 0) targets[k] = val;
+        });
+
+        state.nutritionProfile = {
+          configured: true,
+          goalMode: draftGoalMode,
+          sex: document.getElementById('profSexSelect').value,
+          age: Number(document.getElementById('profAgeInput').value) || 25,
+          weight: Number(document.getElementById('profWeightInput').value) || 60,
+          height: Number(document.getElementById('profHeightInput').value) || 168,
+          activity: Number(document.getElementById('profActivitySelect').value) || 1.6,
+          targets
+        };
+
+        saveState();
+        updateNutritionHeaderIndicator();
+        closeModal('nutritionProfileModal');
+        renderNutritionModal();
+        if (activeTab === 'shopping') renderShopping();
+        showToast('Osobní profil a výživové cíle byly uloženy.');
+      });
+
+      // Záloha dat (Export / Import JSON)
+      document.getElementById('exportBackupBtn').addEventListener('click', () => {
+        const backupPayload = {
+          exportedAt: new Date().toISOString(),
+          appVersion: 'v4_nutrition',
+          data: state
+        };
+        const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `zaloha-nakup-plan-${getLocalDateKey(0)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Záloha dat byla stažena do mobilu.');
+      });
+
+      document.getElementById('importBackupInput').addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(String(reader.result || ''));
+            const importedData = parsed?.data && typeof parsed.data === 'object' ? parsed.data : parsed;
+            if (!importedData || !Array.isArray(importedData.recipes)) {
+              throw new Error('Neplatný formát souboru zálohy.');
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
+            loadState();
+            saveState();
+            updateNutritionHeaderIndicator();
+            closeModal('nutritionProfileModal');
+            closeModal('nutritionModal');
+            switchTab(activeTab);
+            showToast('Data byla úspěšně obnovena ze zálohy.');
+          } catch {
+            showToast('Soubor zálohy se nepodařilo načíst.');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      });
+
+      /* ======================================================================
+         15. NASTAVENÍ AI, AI KUCHAŘ („DOMA“ + „CO TEĎ POTŘEBUJI“) A AI DENÍK
          ====================================================================== */
       const PREFERRED_GEMINI_MODELS = [
         'gemini-3.5-flash-lite',
@@ -2904,7 +4390,7 @@
       ];
 
       const aiChefState = {
-        mode: 'only_home',     // 'only_home' | 'buy_1_2'
+        mode: 'only_home',     // 'only_home' | 'what_i_need'
         preference: 'Cokoliv',
         servings: 2,
         results: [],
@@ -2942,13 +4428,9 @@
       function setKeyTestResult(type, text) {
         const box = document.getElementById('aiKeyTestResult');
         box.classList.remove('hidden', 'bg-sage-tint', 'border-sage-soft', 'text-sage-dark', 'bg-ochre-bg', 'border-ochre-border', 'text-ochre', 'bg-danger-bg', 'border-danger-border', 'text-danger');
-        if (type === 'ok') {
-          box.classList.add('bg-sage-tint', 'border-sage-soft', 'text-sage-dark');
-        } else if (type === 'error') {
-          box.classList.add('bg-danger-bg', 'border-danger-border', 'text-danger');
-        } else {
-          box.classList.add('bg-ochre-bg', 'border-ochre-border', 'text-ochre');
-        }
+        if (type === 'ok') box.classList.add('bg-sage-tint', 'border-sage-soft', 'text-sage-dark');
+        else if (type === 'error') box.classList.add('bg-danger-bg', 'border-danger-border', 'text-danger');
+        else box.classList.add('bg-ochre-bg', 'border-ochre-border', 'text-ochre');
         box.textContent = text;
       }
 
@@ -2961,7 +4443,6 @@
         openModal('aiSettingsModal');
       }
 
-      /** Extrahuje finální text z odpovědi Gemini (přeskočí případné "thought" bloky u thinking modelů) */
       function extractTextFromGeminiResponse(data) {
         const parts = data?.candidates?.[0]?.content?.parts || [];
         const answerPart = parts.find(p => !p.thought && typeof p.text === 'string' && p.text.trim())
@@ -2969,8 +4450,7 @@
         return answerPart ? answerPart.text : '';
       }
 
-      /** Bezpečně rozparsuje JSON pole receptů, i kdyby ho model obalil do markdownu */
-      function parseJsonArraySafely(rawText) {
+      function parseJsonSafely(rawText) {
         const cleaned = String(rawText || '')
           .replace(/^```(?:json)?\s*/i, '')
           .replace(/```\s*$/i, '')
@@ -2978,16 +4458,20 @@
         try {
           return JSON.parse(cleaned);
         } catch {
-          const start = cleaned.indexOf('[');
-          const end = cleaned.lastIndexOf(']');
-          if (start !== -1 && end > start) {
-            return JSON.parse(cleaned.slice(start, end + 1));
+          const arrStart = cleaned.indexOf('[');
+          const arrEnd = cleaned.lastIndexOf(']');
+          if (arrStart !== -1 && arrEnd > arrStart) {
+            return JSON.parse(cleaned.slice(arrStart, arrEnd + 1));
+          }
+          const objStart = cleaned.indexOf('{');
+          const objEnd = cleaned.lastIndexOf('}');
+          if (objStart !== -1 && objEnd > objStart) {
+            return JSON.parse(cleaned.slice(objStart, objEnd + 1));
           }
           throw new Error('Odpověď AI nebyla v platném JSON formátu.');
         }
       }
 
-      /** Při selhání výchozích názvů modelů se zeptá Gemini API na aktuálně dostupné modely pro daný klíč */
       async function discoverAvailableGeminiModels(apiKey) {
         if (!apiKey) return [];
         try {
@@ -3018,7 +4502,73 @@
         }
       }
 
-      /** Otestuje zadaný API klíč proti dostupným Gemini modelům */
+      /** Univerzální volání Gemini API s automatickým zálohováním modelů */
+      async function callGeminiWithFallback(payloadsToTry) {
+        const storedKey = getStoredAiKey();
+        const apiKey = storedKey || '';
+
+        const initialModels = [
+          ...(aiChefState.lastWorkingModel ? [aiChefState.lastWorkingModel] : []),
+          ...PREFERRED_GEMINI_MODELS
+        ];
+        const uniqueModels = [...new Set(initialModels)];
+
+        const tryList = async (models) => {
+          let lastErr = null;
+          for (const model of models) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+            for (let pIdx = 0; pIdx < payloadsToTry.length; pIdx++) {
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payloadsToTry[pIdx])
+              });
+
+              if (res.ok) {
+                const data = await res.json();
+                const text = extractTextFromGeminiResponse(data);
+                if (!text) {
+                  lastErr = Object.assign(new Error('AI vrátila prázdnou odpověď.'), { status: 200, model });
+                  continue;
+                }
+                aiChefState.lastWorkingModel = model;
+                return text;
+              }
+
+              let apiMsg = '';
+              try {
+                const errJson = await res.json();
+                apiMsg = errJson?.error?.message || '';
+              } catch { /* ignorovat */ }
+
+              const isInvalidKey = res.status === 401 || res.status === 403 || /api key not valid|invalid api key|api_key_invalid/i.test(apiMsg);
+              lastErr = Object.assign(
+                new Error(apiMsg || `Chyba API (${res.status})`),
+                { status: res.status, isAuth: isInvalidKey, model }
+              );
+
+              if (isInvalidKey) throw lastErr;
+              if (res.status === 400 && pIdx === 0) continue;
+              break;
+            }
+          }
+          throw lastErr || new Error('Nepodařilo se spojit s Gemini API.');
+        };
+
+        try {
+          return await tryList(uniqueModels);
+        } catch (firstErr) {
+          if (storedKey && !firstErr.isAuth) {
+            const discovered = await discoverAvailableGeminiModels(storedKey);
+            const fallbackModels = discovered.filter(m => !uniqueModels.includes(m)).slice(0, 4);
+            if (fallbackModels.length > 0) {
+              return await tryList(fallbackModels);
+            }
+          }
+          throw firstErr;
+        }
+      }
+
       async function testGeminiApiKey(rawKey) {
         const apiKey = String(rawKey || '').trim();
         if (!apiKey) {
@@ -3082,13 +4632,93 @@
         }
       }
 
+      /** Zápis jídla normální větou přes AI + lokální cache */
+      async function logMealFromSentenceWithAi() {
+        const input = document.getElementById('nutrAiSentenceInput');
+        const sentence = input.value.trim();
+        if (!sentence) {
+          showToast('Napiš prosím, co jsi jedla.');
+          return;
+        }
+
+        const cacheKey = cleanRawPhrase(sentence);
+        if (state.aiFoodCache && state.aiFoodCache[cacheKey]) {
+          const cached = state.aiFoodCache[cacheKey];
+          state.foodLog.unshift({
+            id: uid('fl'),
+            date: selectedNutritionDate,
+            name: cached.name || capitalizeFirst(sentence),
+            subtitle: 'z paměti AI',
+            nutrients: addNutrients(emptyNutrients(), cached.nutrients, 1)
+          });
+          input.value = '';
+          saveState();
+          updateNutritionHeaderIndicator();
+          renderNutritionModal();
+          if (activeTab === 'shopping') renderShopping();
+          showToast(`Zapsáno z paměti: ${cached.name} (~${formatInt(cached.nutrients.kcal)} kcal)`);
+          return;
+        }
+
+        const btn = document.getElementById('logFromAiSentenceBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Odhaduji živiny…</span>';
+
+        try {
+          const prompt = [
+            `Odhadni orientační výživové hodnoty celého tohoto českého jídla: "${sentence}".`,
+            'Vrať VÝHRADNĚ čistý JSON objekt s poli:',
+            'name (krátký hezký český název jídla), kcal, protein (g), carbs (g), fat (g), fiber (g),',
+            'iron (mg), magnesium (mg), calcium (mg), zinc (mg), potassium (mg), vitC (mg), vitD (µg), vitB12 (µg), folate (µg), omega3 (g).'
+          ].join(' ');
+
+          const payload = {
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: 'application/json' }
+          };
+
+          const rawText = await callGeminiWithFallback([payload]);
+          const parsed = parseJsonSafely(rawText);
+
+          const nutrients = emptyNutrients();
+          ALL_NUTRIENT_KEYS.forEach(k => {
+            nutrients[k] = Math.max(0, Math.round((Number(parsed?.[k]) || 0) * 100) / 100);
+          });
+          const mealName = capitalizeFirst(String(parsed?.name || sentence).trim());
+
+          state.aiFoodCache[cacheKey] = { name: mealName, nutrients };
+          state.foodLog.unshift({
+            id: uid('fl'),
+            date: selectedNutritionDate,
+            name: mealName,
+            subtitle: 'AI odhad',
+            nutrients
+          });
+
+          input.value = '';
+          saveState();
+          updateNutritionHeaderIndicator();
+          renderNutritionModal();
+          if (activeTab === 'shopping') renderShopping();
+          showToast(`Zapsáno: ${mealName} (~${formatInt(nutrients.kcal)} kcal, ${Math.round(nutrients.protein)} g B)`);
+        } catch (err) {
+          const hasKey = getStoredAiKey().length > 0;
+          showToast(hasKey ? `Chyba AI: ${err.message}` : 'Pro odhad větou si nejdřív vlož Gemini klíč v ✨ Nastavení AI.');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<span>✨ Odhadnout živiny a zapsat</span>';
+        }
+      }
+
+      document.getElementById('logFromAiSentenceBtn').addEventListener('click', logMealFromSentenceWithAi);
+
       function updateAiChefHeaderSummary() {
         const count = state.pantry.length;
         const preview = state.pantry.slice(0, 4).map(p => p.name).join(', ');
         const suffix = count > 4 ? ` a ${count - 4} dalších` : '';
         document.getElementById('aiChefPantrySummary').textContent = count > 0
           ? `Doma máš ${count} ${count === 1 ? 'surovinu' : count < 5 ? 'suroviny' : 'surovin'}: ${preview}${suffix}`
-          : 'Záložka Doma je prázdná — přidej nejdřív pár surovin.';
+          : 'Záložka Doma je prázdná — ale režim „Co teď potřebuji“ funguje i tak!';
       }
 
       function syncAiChefControlsUI() {
@@ -3109,6 +4739,23 @@
         });
 
         document.getElementById('aiServingsValue').textContent = String(aiChefState.servings);
+
+        // Aktualizuj kontextový popisek podle profilu a aktuálních živin
+        const profile = state.nutritionProfile || getDefaultNutritionProfile();
+        const goalLabel = GOAL_MODE_LABELS[profile.goalMode] || 'Zdravé nabírání';
+        const todayTotals = getDayTotals(getLocalDateKey(0)).totals;
+        const remKcal = Math.max(0, Math.round(profile.targets.kcal - todayTotals.kcal));
+        const remProt = Math.max(0, Math.round(profile.targets.protein - todayTotals.protein));
+        const radar = getSevenDayMicroSummary();
+        const topLacking = radar.lacking.slice(0, 3).map(l => l.label.toLowerCase());
+
+        const noteEl = document.getElementById('aiChefNutritionContextNote');
+        if (aiChefState.mode === 'only_home') {
+          noteEl.textContent = `Vařím jen z tvých domácích zásob a ladím jídla pro cíl „${goalLabel}“ (${profile.goalMode === 'gain' ? 'vydatnější kombinace s důrazem na bílkoviny' : 'vyvážené porce'}).`;
+        } else {
+          const microPart = topLacking.length > 0 ? ` • doplní: ${topLacking.join(', ')}` : '';
+          noteEl.textContent = `Cíl „${goalLabel}“ • dnes zbývá ~${formatInt(remKcal)} kcal a ${remProt} g bílkovin${microPart} (bonusově využiju i suroviny doma).`;
+        }
       }
 
       function openAiChefModal() {
@@ -3122,17 +4769,31 @@
         const pantryLines = state.pantry
           .filter(p => Number(p.amount) > 0)
           .map(p => `- ${p.name}: ${formatAmount(p.amount)} ${p.unit}`)
-          .join('\n');
+          .join('\n') || '- (zatím prázdná lednice)';
+
+        const profile = state.nutritionProfile || getDefaultNutritionProfile();
+        const goalLabel = GOAL_MODE_LABELS[profile.goalMode] || 'Zdravé nabírání';
+        const todayTotals = getDayTotals(getLocalDateKey(0)).totals;
+        const remKcal = Math.max(0, Math.round(profile.targets.kcal - todayTotals.kcal));
+        const remProt = Math.max(0, Math.round(profile.targets.protein - todayTotals.protein));
+        const radar = getSevenDayMicroSummary();
+        const lackingMicros = radar.lacking.slice(0, 4).map(l => `${l.label} (${l.pct}% cíle)`);
 
         const wish = document.getElementById('aiWishInput').value.trim();
 
+        const goalGuidance = profile.goalMode === 'gain'
+          ? `Uživatel má režim ZDRAVÉ NABÍRÁNÍ (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Nenavrhuj lehké dietní salátky — navrhuj poctivá, sytá, energeticky a bílkovinově vydatná jídla (cca 550–850 kcal a 30–50 g bílkovin na 1 porci).`
+          : profile.goalMode === 'lose'
+            ? `Uživatel má režim LEHKÁ REDUKCE (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Navrhuj sytá jídla s vysokým podílem bílkovin a vlákniny při rozumné energii (cca 380–550 kcal na porci).`
+            : `Uživatel má režim VYVÁŽENOST & UDRŽOVÁNÍ (denní cíl ${profile.targets.kcal} kcal, ${profile.targets.protein} g bílkovin). Navrhuj vyvážená plnohodnotná jídla.`;
+
         const modeRule = aiChefState.mode === 'only_home'
-          ? 'REŽIM 1 (JEN Z DOMÁCÍCH ZÁSOB): Navrhni přesně 3 reálné, chutné recepty POUZE ze surovin uvedených v seznamu doma (navíc smíš použít jen naprosté základy: sůl, pepř, běžný olej, základní koření a vodu — vodu ale do pole ingredients vůbec nepiš, zmiň ji jen v postupu). Nepřidávej žádné suroviny, které uživatel nemá doma.'
-          : 'REŽIM 2 (DOKOUPIT JEN 1–2 VĚCI): Navrhni přesně 3 skvělé recepty, které maximálně využijí suroviny ze seznamu doma a ke každému receptu stačí dokoupit PŘESNĚ 1 až 2 další suroviny (kromě soli, pepře, oleje a vody — vodu do pole ingredients nepiš).';
+          ? `REŽIM 1 (Z TOHO, CO MÁM DOMA): Navrhni přesně 3 reálné, chutné recepty POUZE ze surovin uvedených v seznamu doma (navíc smíš použít jen naprosté základy: sůl, pepř, běžný olej, základní koření a vodu — vodu do pole ingredients nepiš). Zároveň zohledni profil uživatele (${goalLabel}).`
+          : `REŽIM 2 (CO TEĎ POTŘEBUJI): Neomezuj se na počet surovin k dokoupení! Navrhni přesně 3 plnohodnotné recepty ušité na míru aktuálním výživovým potřebám uživatele: dnes mu zbývá přibližně ${remKcal} kcal a ${remProt} g bílkovin${lackingMicros.length > 0 ? `, dlouhodobě mu chybí tyto vitamíny/minerály: ${lackingMicros.join(', ')}` : ''}. Jako příjemný bonus zakomponuj i některé suroviny, které už má doma.`;
 
         const prefRule = aiChefState.preference !== 'Cokoliv'
           ? `Preference jídla: ${aiChefState.preference}.`
-          : 'Typ jídla: libovolné praktické domácí jídlo.';
+          : 'Typ jídla: praktické domácí jídlo.';
 
         const wishRule = wish ? `Speciální přání uživatele: ${wish}.` : '';
         const excludeRule = excludeTitles.length > 0
@@ -3140,14 +4801,16 @@
           : '';
 
         const systemInstruction = [
-          'Jsi šikovný český domácí kuchař. Navrhuješ praktické, chutné a realistické recepty v přirozené češtině.',
+          'Jsi šikovný český domácí kuchař a výživový poradce. Navrhuješ praktické, chutné a realistické recepty v přirozené češtině.',
           'Všechny názvy surovin v poli ingredients piš v 1. pádě a pokud se surovina nachází v seznamu doma, použij její srozumitelný český název.',
           'Pro jednotky (unit) používej výhradně standardní české jednotky: g, kg, ml, l, ks, lžíce, lžička, hrst, stroužek, plechovka, balení, hrnek, špetka.',
-          'Vrať VÝHRADNĚ čisté JSON pole přesně 3 objektů receptů s poli: name (string), prepTime (string), servings (number), description (string), ingredients (pole objektů {name, qty, unit}), steps (pole stringů).'
+          'Ke každému receptu vyplň krátký důvod whyNow (1 věta, proč se recept hodí pro jeho cíl a živiny) a orientační hodnoty na 1 porci (kcalPerServing, proteinPerServing, carbsPerServing, fatPerServing).',
+          'Vrať VÝHRADNĚ čisté JSON pole přesně 3 objektů receptů.'
         ].join(' ');
 
         const userPrompt = [
-          `Suroviny, které mám aktuálně doma:\n${pantryLines}`,
+          goalGuidance,
+          `Suroviny doma:\n${pantryLines}`,
           '',
           modeRule,
           prefRule,
@@ -3166,10 +4829,15 @@
               items: {
                 type: 'OBJECT',
                 properties: {
-                  name:        { type: 'STRING' },
-                  prepTime:    { type: 'STRING' },
-                  servings:    { type: 'INTEGER' },
-                  description: { type: 'STRING' },
+                  name:              { type: 'STRING' },
+                  prepTime:          { type: 'STRING' },
+                  servings:          { type: 'INTEGER' },
+                  description:       { type: 'STRING' },
+                  whyNow:            { type: 'STRING' },
+                  kcalPerServing:    { type: 'NUMBER' },
+                  proteinPerServing: { type: 'NUMBER' },
+                  carbsPerServing:   { type: 'NUMBER' },
+                  fatPerServing:     { type: 'NUMBER' },
                   ingredients: {
                     type: 'ARRAY',
                     items: {
@@ -3187,7 +4855,7 @@
                     items: { type: 'STRING' }
                   }
                 },
-                required: ['name', 'prepTime', 'servings', 'description', 'ingredients', 'steps']
+                required: ['name', 'prepTime', 'servings', 'description', 'whyNow', 'kcalPerServing', 'proteinPerServing', 'ingredients', 'steps']
               }
             }
           }
@@ -3196,87 +4864,15 @@
         const simpleJsonPayload = {
           systemInstruction: { parts: [{ text: systemInstruction }] },
           contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-          generationConfig: {
-            responseMimeType: 'application/json'
-          }
+          generationConfig: { responseMimeType: 'application/json' }
         };
 
-        const storedKey = getStoredAiKey();
-        const apiKey = storedKey || '';
-
-        const initialModels = [
-          ...(aiChefState.lastWorkingModel ? [aiChefState.lastWorkingModel] : []),
-          ...PREFERRED_GEMINI_MODELS
-        ];
-        const uniqueModels = [...new Set(initialModels)];
-
-        const tryModelList = async (models) => {
-          let lastErr = null;
-
-          for (const model of models) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-            const payloadsToTry = [schemaPayload, simpleJsonPayload];
-
-            for (let pIdx = 0; pIdx < payloadsToTry.length; pIdx++) {
-              const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payloadsToTry[pIdx])
-              });
-
-              if (res.ok) {
-                const data = await res.json();
-                const text = extractTextFromGeminiResponse(data);
-                if (!text) {
-                  lastErr = Object.assign(new Error('AI vrátila prázdnou odpověď.'), { status: 200, model });
-                  continue;
-                }
-                const parsed = parseJsonArraySafely(text);
-                if (!Array.isArray(parsed) || parsed.length === 0) {
-                  lastErr = Object.assign(new Error('AI nevrátila pole receptů.'), { status: 200, model });
-                  continue;
-                }
-                aiChefState.lastWorkingModel = model;
-                return parsed.slice(0, 3);
-              }
-
-              let apiMsg = '';
-              try {
-                const errJson = await res.json();
-                apiMsg = errJson?.error?.message || '';
-              } catch { /* ignorovat */ }
-
-              const isInvalidKey = res.status === 401 || res.status === 403 || /api key not valid|invalid api key|api_key_invalid/i.test(apiMsg);
-              lastErr = Object.assign(
-                new Error(apiMsg || `Chyba API (${res.status})`),
-                { status: res.status, isAuth: isInvalidKey, model }
-              );
-
-              // Neplatný klíč nemá smysl zkoušet na dalších modelech
-              if (isInvalidKey) throw lastErr;
-
-              // Pokud 400 (např. schéma), zkusíme jednodušší payload; jinak přecházíme na další model
-              if (res.status === 400 && pIdx === 0) continue;
-              break;
-            }
-          }
-
-          throw lastErr || new Error('Nepodařilo se získat recepty od AI.');
-        };
-
-        try {
-          return await tryModelList(uniqueModels);
-        } catch (firstErr) {
-          // Pokud selhaly výchozí modely (např. 404/429) a máme klíč, zkusíme automaticky zjistit dostupné modely
-          if (storedKey && !firstErr.isAuth) {
-            const discovered = await discoverAvailableGeminiModels(storedKey);
-            const fallbackModels = discovered.filter(m => !uniqueModels.includes(m)).slice(0, 4);
-            if (fallbackModels.length > 0) {
-              return await tryModelList(fallbackModels);
-            }
-          }
-          throw firstErr;
+        const rawText = await callGeminiWithFallback([schemaPayload, simpleJsonPayload]);
+        const parsed = parseJsonSafely(rawText);
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+          throw new Error('AI nevrátila pole receptů.');
         }
+        return parsed.slice(0, 3);
       }
 
       function normalizeAiRecipeForApp(aiRec) {
@@ -3299,14 +4895,25 @@
           .map(s => String(s || '').replace(/^\d+[.)]\s*/, '').trim())
           .filter(Boolean);
 
-        return {
+        const baseRec = {
           name: String(aiRec.name || 'Nový AI recept').trim(),
           prepTime: String(aiRec.prepTime || '25 min').trim(),
           servings: Number(aiRec.servings) > 0 ? Number(aiRec.servings) : aiChefState.servings,
           note: String(aiRec.description || '').trim(),
+          whyNow: String(aiRec.whyNow || '').trim(),
           ingredients,
           steps
         };
+
+        // Zkombinujeme lokálně spočítané mikroživiny se zpřesněnými makry od AI
+        const localCalc = calculateRecipeNutrientsPerServing(baseRec);
+        if (Number(aiRec.kcalPerServing) > 0) localCalc.kcal = Math.round(Number(aiRec.kcalPerServing));
+        if (Number(aiRec.proteinPerServing) > 0) localCalc.protein = Math.round(Number(aiRec.proteinPerServing));
+        if (Number(aiRec.carbsPerServing) > 0) localCalc.carbs = Math.round(Number(aiRec.carbsPerServing));
+        if (Number(aiRec.fatPerServing) > 0) localCalc.fat = Math.round(Number(aiRec.fatPerServing));
+        baseRec.aiNutritionPerServing = localCalc;
+
+        return baseRec;
       }
 
       function renderAiResults() {
@@ -3327,6 +4934,7 @@
           const missingCount = missingDetails.length;
           const missingNames = missingDetails.map(d => d.ing.name).join(', ');
           const isSaved = aiChefState.savedIndices.has(idx);
+          const perServing = calculateRecipeNutrientsPerServing(rec);
 
           const statusBadge = evalRes.canCook
             ? `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-sage-tint text-sage-dark border border-sage-soft">✓ Máš vše doma</span>`
@@ -3372,8 +4980,18 @@
                     ⏱ ${escapeHtml(rec.prepTime)} • ${escapeHtml(rec.servings)} porce
                   </span>
                 </div>
-                ${rec.note ? `<p class="text-xs text-sage-muted mt-1 leading-relaxed">${escapeHtml(rec.note)}</p>` : ''}
-                <div class="mt-2">${statusBadge}</div>
+                ${rec.whyNow ? `
+                  <div class="mt-1.5 text-xs font-medium text-sage-dark bg-sage-tint/75 border border-sage-border rounded-xl px-3 py-1.5 leading-snug">
+                    🌿 <strong>Proč právě teď:</strong> ${escapeHtml(rec.whyNow)}
+                  </div>
+                ` : ''}
+                ${rec.note ? `<p class="text-xs text-sage-muted mt-1.5 leading-relaxed">${escapeHtml(rec.note)}</p>` : ''}
+                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                  ${statusBadge}
+                  <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sage-bg text-sage-ink border border-sage-border">
+                    ~${formatInt(perServing.kcal)} kcal • ${Math.round(perServing.protein)} g B / porce
+                  </span>
+                </div>
               </div>
 
               <details open class="bg-sage-bg rounded-xl border border-sage-border/80 px-3 py-2">
@@ -3431,8 +5049,8 @@
 
       async function runAiChefGeneration(isMoreIdeas = false) {
         if (aiChefState.isLoading) return;
-        if (state.pantry.length === 0) {
-          showToast('Nejdřív si přidej pár surovin do záložky Doma.');
+        if (aiChefState.mode === 'only_home' && state.pantry.length === 0) {
+          showToast('V režimu „Z toho, co mám doma“ si nejdřív přidej pár surovin do Doma, nebo přepni na „Co teď potřebuji“.');
           return;
         }
 
@@ -3482,7 +5100,7 @@
             errText.textContent = 'Google na chvilku omezil rychlost bezplatného API. Počkej prosím pár desítek sekund a zkus to znovu.';
           } else {
             errTitle.textContent = 'Nepodařilo se vygenerovat recepty';
-            errText.textContent = 'Níže najdeš přesnou zprávu od API, podle které hned poznáme, co se děje:';
+            errText.textContent = 'Níže najdeš přesnou zprávu od API:';
           }
 
           if (err && err.message) {
@@ -3586,7 +5204,8 @@
             servings: rec.servings,
             note: rec.note,
             steps: [...rec.steps],
-            ingredients: rec.ingredients.map(i => ({ ...i }))
+            ingredients: rec.ingredients.map(i => ({ ...i })),
+            aiNutritionPerServing: rec.aiNutritionPerServing ? { ...rec.aiNutritionPerServing } : undefined
           };
           state.recipes.unshift(savedRec);
           openRecipeIds.add(savedRec.id);
@@ -3598,7 +5217,7 @@
         } else if (btn.dataset.action === 'ai-add-missing') {
           const evalRes = evaluateRecipe(rec);
           let added = 0;
-          evalRes.details.forEach(({ ing, match }) => {
+          ev.details.forEach(({ ing, match }) => {
             if (match.status === 'missing') {
               addOrMergeShoppingItem(ing.name, ing.amount, ing.unit);
               added++;
@@ -3620,6 +5239,7 @@
 
       // První vykreslení po spuštění
       updateAiKeyUI();
+      updateNutritionHeaderIndicator();
       renderShopping();
     }
 
